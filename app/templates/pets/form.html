@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if pet and pet.id else 'Novo' }} pet - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('pets.index') }}" class="text-decoration-none subtle"><i class="bi bi-arrow-left"></i> Voltar</a>
+  <h1 class="page-title h3 mt-2">{{ 'Editar pet' if pet and pet.id else 'Novo pet' }}</h1>
+</div>
+<div class="card card-soft p-3 p-md-4">
+  <form method="post" enctype="multipart/form-data">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Tutor *</label>
+        <select name="tutor_id" class="form-select" required>
+          <option value="">Selecione</option>
+          {% for tutor in tutores %}
+          <option value="{{ tutor.id }}" {% if pet and pet.tutor_id == tutor.id %}selected{% endif %}>{{ tutor.nome }} - {{ tutor.telefone }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Nome do pet *</label>
+        <input class="form-control" name="nome" value="{{ pet.nome if pet else '' }}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Espécie</label>
+        <select name="especie" class="form-select">
+          {% for especie in especies %}<option value="{{ especie }}" {% if pet and pet.especie == especie %}selected{% endif %}>{{ especie }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Porte *</label>
+        <select name="porte" class="form-select" required>
+          {% for porte in portes if porte != 'Todos' %}<option value="{{ porte }}" {% if pet and pet.porte == porte %}selected{% endif %}>{{ porte }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Raça</label>
+        <input class="form-control" name="raca" value="{{ pet.raca if pet else '' }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Sexo</label>
+        <select name="sexo" class="form-select">
+          <option value="">Não informado</option>
+          <option value="Macho" {% if pet and pet.sexo == 'Macho' %}selected{% endif %}>Macho</option>
+          <option value="Fêmea" {% if pet and pet.sexo == 'Fêmea' %}selected{% endif %}>Fêmea</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Idade</label>
+        <input class="form-control" name="idade" value="{{ pet.idade if pet else '' }}" placeholder="Ex.: 3 anos">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Peso</label>
+        <input class="form-control" name="peso" value="{{ pet.peso if pet else '' }}" placeholder="Ex.: 8 kg">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Foto</label>
+        <input class="form-control" type="file" name="foto" accept="image/*">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Observações de comportamento</label>
+        <textarea class="form-control" name="observacoes" rows="4" placeholder="Ex.: medo de secador, fica nervoso, gosta de petisco...">{{ pet.observacoes if pet else '' }}</textarea>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Restrições / cuidados</label>
+        <textarea class="form-control" name="restricoes" rows="4" placeholder="Ex.: alergia, shampoo específico, problema de pele...">{{ pet.restricoes if pet else '' }}</textarea>
+      </div>
+      {% if pet and pet.id %}
+      <div class="col-12 form-check ms-2">
+        <input class="form-check-input" type="checkbox" name="ativo" id="ativo" {% if pet.ativo %}checked{% endif %}>
+        <label class="form-check-label" for="ativo">Pet ativo</label>
+      </div>
+      {% endif %}
+    </div>
+    <div class="d-flex gap-2 mt-4">
+      <button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+      <a href="{{ url_for('pets.index') }}" class="btn btn-light">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

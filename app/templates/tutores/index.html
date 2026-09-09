@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Tutores - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="page-title h3 mb-1">Tutores</h1>
+    <p class="subtle mb-0">Clientes responsáveis pelos pets.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('tutores.novo') }}"><i class="bi bi-plus-lg me-1"></i>Novo tutor</a>
+</div>
+
+<div class="card card-soft p-3 p-md-4">
+  <form class="row g-2 mb-3">
+    <div class="col">
+      <input class="form-control" name="q" value="{{ q }}" placeholder="Buscar por nome, telefone ou e-mail">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-outline-primary"><i class="bi bi-search"></i></button>
+    </div>
+  </form>
+  {% if tutores %}
+    <div class="table-responsive table-card">
+      <div class="grid-scroll">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr><th>Nome</th><th>Telefone</th><th>Pets</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for tutor in tutores %}
+              <tr>
+                <td class="fw-semibold">{{ tutor.nome }}</td>
+                <td>{{ tutor.telefone }}</td>
+                <td>{{ tutor.pets|length }}</td>
+                <td><span class="badge rounded-pill text-bg-{{ 'success' if tutor.ativo else 'secondary' }}">{{ 'Ativo' if tutor.ativo else 'Inativo' }}</span></td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-light" href="{{ url_for('tutores.detalhe', tutor_id=tutor.id) }}">Abrir</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="text-center py-5 subtle">Nenhum tutor encontrado.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if pacote else 'Novo' }} pacote - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('pacotes.index') }}" class="text-decoration-none subtle"><i class="bi bi-arrow-left"></i> Pacotes</a>
+  <h1 class="page-title h3 mt-2">{{ 'Editar pacote' if pacote else 'Novo pacote' }}</h1>
+</div>
+
+<div class="card card-soft p-3 p-md-4">
+  <form method="post">
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label">Nome *</label>
+        <input class="form-control" name="nome" value="{{ pacote.nome if pacote else '' }}" placeholder="Ex.: Banho mensal 4x" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Serviço incluso *</label>
+        <select class="form-select" name="servico_id" required>
+          <option value="">Selecione</option>
+          {% for servico in servicos %}
+          <option value="{{ servico.id }}" {% if pacote and pacote.servico_id == servico.id %}selected{% endif %}>{{ servico.descricao }} - {{ servico.valor|brl }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Valor do pacote *</label>
+        <input class="form-control" type="number" min="0" step="0.01" name="valor" value="{{ pacote.valor if pacote else '' }}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Quantidade de atendimentos *</label>
+        <input class="form-control" type="number" min="1" step="1" name="quantidade_atendimentos" value="{{ pacote.quantidade_atendimentos if pacote else 4 }}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Validade em dias *</label>
+        <input class="form-control" type="number" min="1" step="1" name="validade_dias" value="{{ pacote.validade_dias if pacote else 30 }}" required>
+      </div>
+      {% if pacote %}
+      <div class="col-md-4 d-flex align-items-end">
+        <div class="form-check ms-2 mb-2">
+          <input class="form-check-input" type="checkbox" name="ativo" id="ativo" {% if pacote.ativo %}checked{% endif %}>
+          <label class="form-check-label" for="ativo">Pacote ativo</label>
+        </div>
+      </div>
+      {% endif %}
+      <div class="col-12">
+        <label class="form-label">Observações</label>
+        <textarea class="form-control" name="observacoes" rows="3">{{ pacote.observacoes if pacote else '' }}</textarea>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-4">
+      <button class="btn btn-primary">Salvar pacote</button>
+      <a href="{{ url_for('pacotes.index') }}" class="btn btn-light">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block title %}Pacotes - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="page-title h3 mb-1">Pacotes e saldos</h1>
+    <p class="subtle mb-0">Controle mensal de banhos e atendimentos por pet.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-primary" href="{{ url_for('pacotes.novo') }}"><i class="bi bi-tags me-1"></i>Novo pacote</a>
+    <a class="btn btn-primary" href="{{ url_for('pacotes.cliente_novo') }}"><i class="bi bi-plus-lg me-1"></i>Vincular pet</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-4">
+    <div class="stat-card">
+      <div class="stat-label">Pacotes ativos</div>
+      <div class="stat-value">{{ total_ativos }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-4">
+    <div class="stat-card">
+      <div class="stat-label">Créditos abertos</div>
+      <div class="stat-value">{{ creditos_abertos }}</div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="stat-card">
+      <div class="stat-label">Vencendo em 7 dias</div>
+      <div class="stat-value text-warning">{{ vencendo }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card card-soft p-3 p-md-4 mb-3">
+  <form class="row g-2 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label">Buscar</label>
+      <input class="form-control" name="q" value="{{ q }}" placeholder="Tutor, pet ou pacote">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Status</label>
+      <select class="form-select" name="status">
+        <option value="" {% if not status %}selected{% endif %}>Todos</option>
+        {% for opt in status_options %}
+        <option value="{{ opt }}" {% if status == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-outline-primary w-100"><i class="bi bi-search me-1"></i>Filtrar</button>
+    </div>
+  </form>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Pacotes vinculados</h2>
+      {% if pacotes_clientes %}
+      <div class="table-responsive table-card">
+        <div class="grid-scroll">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr><th>Pet/Tutor</th><th>Pacote</th><th>Validade</th><th>Saldo</th><th>Pagamento</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for item in pacotes_clientes %}
+              <tr>
+                <td><strong>{{ item.pet.nome }}</strong><br><small class="subtle">{{ item.tutor.nome }}</small></td>
+                <td>{{ item.pacote.nome }}<br><small class="subtle">{{ item.pacote.servico.nome }}</small></td>
+                <td>{{ item.data_inicio.strftime('%d/%m/%Y') }}<br><small class="subtle">até {{ item.data_fim.strftime('%d/%m/%Y') }}</small></td>
+                <td style="min-width:160px">
+                  <div class="d-flex justify-content-between small mb-1"><span>{{ item.consumidos }} usados</span><strong>{{ item.saldo }} livres</strong></div>
+                  <div class="progress pacote-progress"><div class="progress-bar" style="width: {{ item.progresso_percentual }}%"></div></div>
+                </td>
+                <td>
+                  <span class="badge text-bg-{{ 'success' if item.pago else 'warning' }} rounded-pill">{{ 'Pago' if item.pago else 'Pendente' }}</span>
+                  <div class="small subtle">{{ item.valor|brl }}</div>
+                </td>
+                <td><span class="badge text-bg-{{ item.badge_class }} rounded-pill">{{ item.status_operacional }}</span></td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-light" href="{{ url_for('pacotes.cliente_detalhe', pacote_cliente_id=item.id) }}">Abrir</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% else %}
+      <div class="text-center py-5 subtle">Nenhum pacote vinculado.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card card-soft p-3 p-md-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 fw-bold mb-0">Modelos</h2>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('pacotes.novo') }}">Novo</a>
+      </div>
+      {% if modelos %}
+        <div class="vstack gap-2">
+        {% for modelo in modelos %}
+          <div class="bg-light rounded-4 p-3">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="fw-bold">{{ modelo.nome }}</div>
+                <div class="subtle small">{{ modelo.servico.nome }} • {{ modelo.quantidade_atendimentos }} atendimentos • {{ modelo.validade_dias }} dias</div>
+              </div>
+              <span class="badge text-bg-{{ 'success' if modelo.ativo else 'secondary' }} rounded-pill align-self-start">{{ 'Ativo' if modelo.ativo else 'Inativo' }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <strong>{{ modelo.valor|brl }}</strong>
+              <a class="btn btn-sm btn-light" href="{{ url_for('pacotes.editar', pacote_id=modelo.id) }}">Editar</a>
+            </div>
+          </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <p class="subtle mb-0">Nenhum modelo cadastrado.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

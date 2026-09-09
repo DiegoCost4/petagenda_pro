@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Início - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="page-title h3 mb-1">Resumo do dia</h1>
+    <p class="subtle mb-0">{{ hoje.strftime('%d/%m/%Y') }}</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('agenda.novo') }}"><i class="bi bi-plus-lg me-1"></i>Novo agendamento</a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-label">Agendamentos hoje</div>
+          <div class="stat-value">{{ total_agendamentos }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-calendar-check"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-label">Previsto hoje</div>
+      <div class="stat-value">{{ total_previsto|brl }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-label">Recebido hoje</div>
+      <div class="stat-value">{{ total_recebido|brl }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-label">Clientes / Pets</div>
+      <div class="stat-value">{{ total_tutores }} / {{ total_pets }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card card-soft p-3 p-md-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 fw-bold mb-0">Agenda de hoje</h2>
+        <a href="{{ url_for('agenda.index') }}" class="btn btn-outline-primary btn-sm">Ver agenda</a>
+      </div>
+      {% if agendamentos_hoje %}
+        <div class="vstack gap-3">
+          {% for item in agendamentos_hoje %}
+            <a href="{{ url_for('agenda.detalhe', agendamento_id=item.id) }}" class="text-decoration-none text-dark">
+              <div class="d-flex align-items-center justify-content-between bg-light rounded-4 p-3">
+                <div>
+                  <div class="fw-bold">{{ item.hora_inicio }} - {{ item.pet.nome }}</div>
+                  <div class="subtle small">{{ item.tutor.nome }} • {{ item.servico.nome }} • {{ 'Pacote' if item.coberto_por_pacote else item.valor|brl }}</div>
+                </div>
+                <span class="badge text-bg-{{ item.badge_class }} rounded-pill">{{ item.status }}</span>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-calendar-heart display-5 text-muted"></i>
+          <p class="subtle mt-2">Nenhum agendamento para hoje.</p>
+          <a class="btn btn-primary" href="{{ url_for('agenda.novo') }}">Criar primeiro agendamento</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold mb-3">Próximo atendimento</h2>
+      {% if proximo %}
+        <div class="timeline-item">
+          <div class="fw-bold">{{ proximo.hora_inicio }} - {{ proximo.pet.nome }}</div>
+          <div class="subtle">{{ proximo.servico.descricao }}</div>
+          <a class="btn btn-outline-primary btn-sm mt-3" href="{{ url_for('agenda.detalhe', agendamento_id=proximo.id) }}">Abrir</a>
+        </div>
+      {% else %}
+        <p class="subtle mb-0">Sem próximo atendimento ativo hoje.</p>
+      {% endif %}
+    </div>
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Ações rápidas</h2>
+      <div class="d-grid gap-2">
+        <a href="{{ url_for('tutores.novo') }}" class="btn btn-light text-start"><i class="bi bi-person-plus me-2"></i>Cadastrar tutor</a>
+        <a href="{{ url_for('pets.novo') }}" class="btn btn-light text-start"><i class="bi bi-heart me-2"></i>Cadastrar pet</a>
+        <a href="{{ url_for('servicos.index') }}" class="btn btn-light text-start"><i class="bi bi-scissors me-2"></i>Serviços e preços</a>
+        <a href="{{ url_for('pacotes.index') }}" class="btn btn-light text-start"><i class="bi bi-ticket-perforated me-2"></i>Pacotes e saldos</a>
+        <a href="{{ url_for('financeiro.index') }}" class="btn btn-light text-start"><i class="bi bi-cash-coin me-2"></i>Financeiro</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

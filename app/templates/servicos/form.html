@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if servico else 'Novo' }} serviço - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('servicos.index') }}" class="text-decoration-none subtle"><i class="bi bi-arrow-left"></i> Serviços</a>
+  <h1 class="page-title h3 mt-2">{{ 'Editar serviço' if servico else 'Novo serviço' }}</h1>
+</div>
+<div class="card card-soft p-3 p-md-4">
+  <form method="post">
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label">Nome *</label>
+        <input class="form-control" name="nome" value="{{ servico.nome if servico else '' }}" placeholder="Ex.: Banho + Tosa" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Porte *</label>
+        <select class="form-select" name="porte">
+          {% for porte in portes %}<option value="{{ porte }}" {% if servico and servico.porte == porte %}selected{% endif %}>{{ porte }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Duração *</label>
+        <input class="form-control" type="number" min="10" step="5" name="duracao_minutos" value="{{ servico.duracao_minutos if servico else '' }}" placeholder="min" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Valor *</label>
+        <input class="form-control" type="number" min="0" step="0.01" name="valor" value="{{ servico.valor if servico else '' }}" required>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Observações</label>
+        <textarea class="form-control" name="observacoes" rows="3">{{ servico.observacoes if servico else '' }}</textarea>
+      </div>
+      {% if servico %}
+      <div class="col-12 form-check ms-2">
+        <input class="form-check-input" type="checkbox" name="ativo" id="ativo" {% if servico.ativo %}checked{% endif %}>
+        <label class="form-check-label" for="ativo">Serviço ativo</label>
+      </div>
+      {% endif %}
+    </div>
+    <div class="d-flex gap-2 mt-4">
+      <button class="btn btn-primary">Salvar</button>
+      <a href="{{ url_for('servicos.index') }}" class="btn btn-light">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Financeiro - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="page-title h3 mb-1">Financeiro</h1>
+    <p class="subtle mb-0">Recebimentos e pendências dos atendimentos e pacotes.</p>
+  </div>
+</div>
+
+<div class="card card-soft p-3 p-md-4 mb-3">
+  <form class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label">Data inicial</label>
+      <input type="date" class="form-control" name="data_ini" value="{{ data_ini.strftime('%Y-%m-%d') }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Data final</label>
+      <input type="date" class="form-control" name="data_fim" value="{{ data_fim.strftime('%Y-%m-%d') }}">
+    </div>
+    <div class="col-md-4">
+      <button class="btn btn-outline-primary w-100"><i class="bi bi-search me-1"></i>Filtrar</button>
+    </div>
+  </form>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="stat-card"><div class="stat-label">Previsto</div><div class="stat-value">{{ total_previsto|brl }}</div></div></div>
+  <div class="col-md-4"><div class="stat-card"><div class="stat-label">Recebido</div><div class="stat-value text-success">{{ total_recebido|brl }}</div></div></div>
+  <div class="col-md-4"><div class="stat-card"><div class="stat-label">Pendente</div><div class="stat-value text-warning">{{ total_pendente|brl }}</div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold mb-3">Atendimentos do período</h2>
+      {% if agendamentos %}
+      <div class="table-responsive table-card">
+        <div class="grid-scroll">
+        <table class="table table-hover align-middle">
+          <thead class="table-light"><tr><th>Data</th><th>Pet/Tutor</th><th>Serviço</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {% for item in agendamentos %}
+            <tr>
+              <td>{{ item.data.strftime('%d/%m/%Y') }}</td>
+              <td><strong>{{ item.pet.nome }}</strong><br><small class="subtle">{{ item.tutor.nome }}</small></td>
+              <td>{{ item.servico.nome }}</td>
+              <td>{% if item.coberto_por_pacote %}<span class="text-success fw-semibold">Pacote</span>{% else %}{{ item.valor|brl }}{% endif %}</td>
+              <td>{% if item.coberto_por_pacote %}<span class="badge text-bg-success rounded-pill">Pacote</span>{% elif item.pago %}<span class="badge text-bg-success rounded-pill">Pago</span>{% else %}<span class="badge text-bg-warning rounded-pill">Pendente</span>{% endif %}</td>
+              <td class="text-end">
+                {% if not item.pago and not item.coberto_por_pacote %}
+                  <form method="post" action="{{ url_for('financeiro.pagar', agendamento_id=item.id) }}" class="d-inline">
+                    <input type="hidden" name="valor" value="{{ item.valor }}">
+                    <input type="hidden" name="forma_pagamento" value="Pix">
+                    <button class="btn btn-sm btn-primary">Pagar</button>
+                  </form>
+                {% endif %}
+                <a class="btn btn-sm btn-light" href="{{ url_for('agenda.detalhe', agendamento_id=item.id) }}">Abrir</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </div>
+      {% else %}
+      <div class="text-center py-5 subtle">Nenhum atendimento no período.</div>
+      {% endif %}
+    </div>
+
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Pacotes vendidos no período</h2>
+      {% if pacotes_periodo %}
+      <div class="table-responsive table-card">
+        <div class="grid-scroll">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th>Início</th><th>Pet/Tutor</th><th>Pacote</th><th>Valor</th><th>Pagamento</th><th></th></tr></thead>
+            <tbody>
+              {% for pacote in pacotes_periodo %}
+              <tr>
+                <td>{{ pacote.data_inicio.strftime('%d/%m/%Y') }}</td>
+                <td><strong>{{ pacote.pet.nome }}</strong><br><small class="subtle">{{ pacote.tutor.nome }}</small></td>
+                <td>{{ pacote.pacote.nome }}<br><small class="subtle">{{ pacote.saldo }}/{{ pacote.quantidade_total }} créditos livres</small></td>
+                <td>{{ pacote.valor|brl }}</td>
+                <td><span class="badge text-bg-{{ 'success' if pacote.pago else 'warning' }} rounded-pill">{{ 'Pago' if pacote.pago else 'Pendente' }}</span></td>
+                <td class="text-end"><a class="btn btn-sm btn-light" href="{{ url_for('pacotes.cliente_detalhe', pacote_cliente_id=pacote.id) }}">Abrir</a></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% else %}
+      <div class="text-center py-5 subtle">Nenhum pacote vendido no período.</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold mb-3">Recebido por forma</h2>
+      {% if pagamentos_por_forma %}
+        {% for forma, total in pagamentos_por_forma %}
+          <div class="d-flex justify-content-between align-items-center bg-light rounded-4 p-3 mb-2">
+            <span>{{ forma }}</span><strong>{{ total|brl }}</strong>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="subtle">Nenhum pagamento registrado.</p>
+      {% endif %}
+    </div>
+
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Composição</h2>
+      <div class="bg-light rounded-4 p-3 mb-2">
+        <div class="d-flex justify-content-between"><span>Atendimentos</span><strong>{{ total_previsto_atendimentos|brl }}</strong></div>
+        <div class="subtle small">Recebido: {{ total_recebido_atendimentos|brl }}</div>
+      </div>
+      <div class="bg-light rounded-4 p-3">
+        <div class="d-flex justify-content-between"><span>Pacotes</span><strong>{{ total_previsto_pacotes|brl }}</strong></div>
+        <div class="subtle small">Recebido: {{ total_recebido_pacotes|brl }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

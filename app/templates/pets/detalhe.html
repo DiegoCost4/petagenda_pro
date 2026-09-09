@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}{{ pet.nome }} - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div class="d-flex align-items-center gap-3">
+    {% if pet.foto %}<img class="avatar-pet" style="width:76px;height:76px" src="{{ url_for('static', filename=pet.foto) }}">{% else %}<div class="avatar-empty" style="width:76px;height:76px"><i class="bi bi-heart-fill"></i></div>{% endif %}
+    <div>
+      <a href="{{ url_for('pets.index') }}" class="text-decoration-none subtle"><i class="bi bi-arrow-left"></i> Pets</a>
+      <h1 class="page-title h3 mt-1 mb-0">{{ pet.nome }}</h1>
+      <p class="subtle mb-0">{{ pet.tutor.nome }} • {{ pet.especie }} • {{ pet.porte }}</p>
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-success" href="{{ pet.tutor.whatsapp_link }}" target="_blank"><i class="bi bi-whatsapp me-1"></i>WhatsApp</a>
+    <a class="btn btn-outline-primary" href="{{ url_for('pets.editar', pet_id=pet.id) }}">Editar</a>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold">Ficha do pet</h2>
+      <p class="mb-1"><strong>Raça:</strong> {{ pet.raca or '-' }}</p>
+      <p class="mb-1"><strong>Sexo:</strong> {{ pet.sexo or '-' }}</p>
+      <p class="mb-1"><strong>Idade:</strong> {{ pet.idade or '-' }}</p>
+      <p class="mb-1"><strong>Peso:</strong> {{ pet.peso or '-' }}</p>
+      <hr>
+      <p class="mb-1"><strong>Observações:</strong><br>{{ pet.observacoes or '-' }}</p>
+      <p class="mb-0"><strong>Restrições:</strong><br>{{ pet.restricoes or '-' }}</p>
+      <div class="d-grid gap-2 mt-4">
+        <a class="btn btn-primary" href="{{ url_for('agenda.novo') }}"><i class="bi bi-calendar-plus me-1"></i>Novo agendamento</a>
+        <a class="btn btn-light" href="{{ url_for('pacotes.cliente_novo', tutor_id=pet.tutor_id, pet_id=pet.id) }}"><i class="bi bi-ticket-perforated me-1"></i>Vincular pacote</a>
+      </div>
+    </div>
+
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Pacotes</h2>
+      {% if pacotes_cliente %}
+        <div class="vstack gap-2">
+          {% for pacote in pacotes_cliente %}
+          <a class="bg-light p-3 rounded-4 text-decoration-none text-dark" href="{{ url_for('pacotes.cliente_detalhe', pacote_cliente_id=pacote.id) }}">
+            <div class="d-flex justify-content-between gap-2 mb-2">
+              <div>
+                <div class="fw-bold">{{ pacote.pacote.nome }}</div>
+                <div class="subtle small">{{ pacote.pacote.servico.nome }} • vence {{ pacote.data_fim.strftime('%d/%m/%Y') }}</div>
+              </div>
+              <span class="badge text-bg-{{ pacote.badge_class }} rounded-pill align-self-start">{{ pacote.status_operacional }}</span>
+            </div>
+            <div class="d-flex justify-content-between small mb-1"><span>{{ pacote.consumidos }} usados</span><strong>{{ pacote.saldo }} livres</strong></div>
+            <div class="progress pacote-progress"><div class="progress-bar" style="width: {{ pacote.progresso_percentual }}%"></div></div>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="subtle mb-0">Nenhum pacote vinculado.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Histórico de atendimentos</h2>
+      {% for item in pet.agendamentos|sort(attribute='data', reverse=True) %}
+        <a href="{{ url_for('agenda.detalhe', agendamento_id=item.id) }}" class="text-decoration-none text-dark">
+          <div class="timeline-item">
+            <div class="fw-bold">{{ item.data.strftime('%d/%m/%Y') }} às {{ item.hora_inicio }}</div>
+            <div class="subtle small">{{ item.servico.nome }} • {{ 'Pacote' if item.coberto_por_pacote else item.valor|brl }} • {{ item.status }}</div>
+            {% if item.observacoes %}<div class="small mt-1">{{ item.observacoes }}</div>{% endif %}
+          </div>
+        </a>
+      {% else %}
+        <p class="subtle">Nenhum atendimento registrado.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

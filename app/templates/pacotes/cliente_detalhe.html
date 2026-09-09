@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Pacote {{ pacote_cliente.pet.nome }} - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <a href="{{ url_for('pacotes.index') }}" class="text-decoration-none subtle"><i class="bi bi-arrow-left"></i> Pacotes</a>
+    <h1 class="page-title h3 mt-2 mb-0">{{ pacote_cliente.pet.nome }}</h1>
+    <p class="subtle mb-0">{{ pacote_cliente.tutor.nome }} • {{ pacote_cliente.pacote.nome }}</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <span class="badge text-bg-{{ pacote_cliente.badge_class }} rounded-pill fs-6 px-3 py-2">{{ pacote_cliente.status_operacional }}</span>
+    <a class="btn btn-outline-primary" href="{{ url_for('pacotes.cliente_editar', pacote_cliente_id=pacote_cliente.id) }}">Editar</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold mb-3">Saldo do pacote</h2>
+      <div class="row g-3">
+        <div class="col-6 col-md-3"><div class="bg-light rounded-4 p-3"><div class="subtle small">Total</div><div class="fw-bold fs-4">{{ pacote_cliente.quantidade_total }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="bg-light rounded-4 p-3"><div class="subtle small">Consumidos</div><div class="fw-bold fs-4">{{ pacote_cliente.consumidos }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="bg-light rounded-4 p-3"><div class="subtle small">Disponíveis</div><div class="fw-bold fs-4 text-success">{{ pacote_cliente.saldo }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="bg-light rounded-4 p-3"><div class="subtle small">Valor</div><div class="fw-bold fs-5">{{ pacote_cliente.valor|brl }}</div></div></div>
+      </div>
+      <div class="progress pacote-progress pacote-progress-lg mt-3"><div class="progress-bar" style="width: {{ pacote_cliente.progresso_percentual }}%"></div></div>
+      <div class="d-flex justify-content-between subtle small mt-2">
+        <span>{{ pacote_cliente.data_inicio.strftime('%d/%m/%Y') }}</span>
+        <span>{{ pacote_cliente.data_fim.strftime('%d/%m/%Y') }}</span>
+      </div>
+    </div>
+
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Consumo na agenda</h2>
+      {% if usos %}
+        {% for uso in usos %}
+          {% set agendamento = uso.agendamento %}
+          <a href="{{ url_for('agenda.detalhe', agendamento_id=agendamento.id) }}" class="text-decoration-none text-dark">
+            <div class="timeline-item">
+              <div class="d-flex justify-content-between gap-2">
+                <div>
+                  <div class="fw-bold">{{ agendamento.data.strftime('%d/%m/%Y') }} às {{ agendamento.hora_inicio }} - {{ agendamento.servico.nome }}</div>
+                  <div class="subtle small">{{ agendamento.status }}{% if agendamento.is_ativo %} • 1 crédito consumido{% else %} • crédito devolvido{% endif %}</div>
+                </div>
+                <span class="badge text-bg-{{ agendamento.badge_class }} rounded-pill align-self-start">{{ agendamento.status }}</span>
+              </div>
+            </div>
+          </a>
+        {% endfor %}
+      {% else %}
+        <div class="text-center py-5 subtle">Nenhum consumo registrado.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold mb-3">Dados do vínculo</h2>
+      <p class="mb-1"><strong>Serviço:</strong> {{ pacote_cliente.pacote.servico.descricao }}</p>
+      <p class="mb-1"><strong>Pagamento:</strong> {{ 'Pago' if pacote_cliente.pago else 'Pendente' }}</p>
+      <p class="mb-1"><strong>Forma:</strong> {{ pacote_cliente.forma_pagamento or '-' }}</p>
+      <p class="mb-0"><strong>Observações:</strong><br>{{ pacote_cliente.observacoes or '-' }}</p>
+    </div>
+
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Ações</h2>
+      <div class="d-grid gap-2">
+        <a class="btn btn-primary" href="{{ url_for('agenda.novo') }}"><i class="bi bi-calendar-plus me-1"></i>Novo agendamento</a>
+        <a class="btn btn-light" href="{{ url_for('pets.detalhe', pet_id=pacote_cliente.pet_id) }}"><i class="bi bi-heart me-1"></i>Abrir pet</a>
+        {% if pacote_cliente.status == 'Ativo' %}
+        <form method="post" action="{{ url_for('pacotes.cliente_encerrar', pacote_cliente_id=pacote_cliente.id) }}" data-confirm="Encerrar este pacote?">
+          <button class="btn btn-outline-danger w-100">Encerrar pacote</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

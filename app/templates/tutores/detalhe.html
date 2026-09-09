@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}{{ tutor.nome }} - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <a href="{{ url_for('tutores.index') }}" class="text-decoration-none subtle"><i class="bi bi-arrow-left"></i> Tutores</a>
+    <h1 class="page-title h3 mt-2 mb-0">{{ tutor.nome }}</h1>
+    <p class="subtle mb-0">{{ tutor.telefone }}{% if tutor.bairro %} • {{ tutor.bairro }}{% endif %}</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-success" href="{{ tutor.whatsapp_link }}" target="_blank"><i class="bi bi-whatsapp me-1"></i>WhatsApp</a>
+    <a class="btn btn-outline-primary" href="{{ url_for('tutores.editar', tutor_id=tutor.id) }}">Editar</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold">Dados do tutor</h2>
+      <p class="mb-1"><strong>E-mail:</strong> {{ tutor.email or '-' }}</p>
+      <p class="mb-1"><strong>Endereço:</strong> {{ tutor.endereco or '-' }}</p>
+      <p class="mb-1"><strong>Observações:</strong> {{ tutor.observacoes or '-' }}</p>
+    </div>
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold">Ações</h2>
+      <div class="d-grid gap-2">
+        <a class="btn btn-primary" href="{{ url_for('pets.novo', tutor_id=tutor.id) }}"><i class="bi bi-heart me-1"></i>Cadastrar pet</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('agenda.novo') }}"><i class="bi bi-calendar-plus me-1"></i>Novo agendamento</a>
+        <a class="btn btn-light" href="{{ url_for('pacotes.cliente_novo', tutor_id=tutor.id) }}"><i class="bi bi-ticket-perforated me-1"></i>Vincular pacote</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 fw-bold mb-0">Pets</h2>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('pets.novo', tutor_id=tutor.id) }}">Novo</a>
+      </div>
+      {% if tutor.pets %}
+        <div class="vstack gap-2">
+          {% for pet in tutor.pets %}
+          <a class="d-flex align-items-center gap-3 bg-light p-3 rounded-4 text-decoration-none text-dark" href="{{ url_for('pets.detalhe', pet_id=pet.id) }}">
+            {% if pet.foto %}<img class="avatar-pet" src="{{ url_for('static', filename=pet.foto) }}">{% else %}<div class="avatar-empty"><i class="bi bi-heart-fill"></i></div>{% endif %}
+            <div>
+              <div class="fw-bold">{{ pet.nome }}</div>
+              <div class="subtle small">{{ pet.especie }} • {{ pet.raca or 'Sem raça' }} • {{ pet.porte }}</div>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="subtle">Nenhum pet cadastrado.</p>
+      {% endif %}
+    </div>
+
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 fw-bold mb-0">Pacotes</h2>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('pacotes.cliente_novo', tutor_id=tutor.id) }}">Vincular</a>
+      </div>
+      {% if pacotes_cliente %}
+        <div class="vstack gap-2">
+          {% for pacote in pacotes_cliente %}
+          <a class="bg-light p-3 rounded-4 text-decoration-none text-dark" href="{{ url_for('pacotes.cliente_detalhe', pacote_cliente_id=pacote.id) }}">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="fw-bold">{{ pacote.pet.nome }} - {{ pacote.pacote.nome }}</div>
+                <div class="subtle small">{{ pacote.saldo }}/{{ pacote.quantidade_total }} créditos • vence {{ pacote.data_fim.strftime('%d/%m/%Y') }}</div>
+              </div>
+              <span class="badge text-bg-{{ pacote.badge_class }} rounded-pill align-self-start">{{ pacote.status_operacional }}</span>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="subtle mb-0">Nenhum pacote vinculado.</p>
+      {% endif %}
+    </div>
+
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Últimos agendamentos</h2>
+      {% for item in tutor.agendamentos|sort(attribute='data', reverse=True) %}
+        <div class="timeline-item">
+          <div class="fw-bold">{{ item.data.strftime('%d/%m/%Y') }} às {{ item.hora_inicio }} - {{ item.pet.nome }}</div>
+          <div class="subtle small">{{ item.servico.nome }} • {{ 'Pacote' if item.coberto_por_pacote else item.valor|brl }} • {{ item.status }}</div>
+        </div>
+      {% else %}
+        <p class="subtle">Nenhum agendamento ainda.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

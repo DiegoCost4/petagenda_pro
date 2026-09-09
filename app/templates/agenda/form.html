@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if agendamento else 'Novo' }} agendamento - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('agenda.index') }}" class="text-decoration-none subtle"><i class="bi bi-arrow-left"></i> Agenda</a>
+  <h1 class="page-title h3 mt-2">{{ 'Editar agendamento' if agendamento else 'Novo agendamento' }}</h1>
+</div>
+<div class="card card-soft p-3 p-md-4">
+  <form method="post" id="agendamentoForm">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Tutor *</label>
+        <select class="form-select" name="tutor_id" id="tutorSelect" required>
+          <option value="">Selecione</option>
+          {% for tutor in tutores %}<option value="{{ tutor.id }}" {% if agendamento and agendamento.tutor_id == tutor.id %}selected{% endif %}>{{ tutor.nome }} - {{ tutor.telefone }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Pet *</label>
+        <select class="form-select" name="pet_id" id="petSelect" required>
+          {% if agendamento %}
+            {% for pet in agendamento.tutor.pets %}<option value="{{ pet.id }}" {% if agendamento.pet_id == pet.id %}selected{% endif %}>{{ pet.nome }} - {{ pet.porte }}</option>{% endfor %}
+          {% else %}
+            <option value="">Selecione um tutor primeiro</option>
+          {% endif %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">Serviço *</label>
+        <select class="form-select" name="servico_id" id="servicoSelect" required>
+          <option value="">Selecione</option>
+          {% for servico in servicos %}<option value="{{ servico.id }}" data-valor="{{ servico.valor }}" data-duracao="{{ servico.duracao_minutos }}" {% if agendamento and agendamento.servico_id == servico.id %}selected{% endif %}>{{ servico.descricao }} - {{ servico.valor|brl }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Data *</label>
+        <input class="form-control" type="date" name="data" id="dataInput" value="{{ agendamento.data.strftime('%Y-%m-%d') if agendamento else data_padrao }}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Horário disponível *</label>
+        <select class="form-select" name="hora_inicio" id="horaSelect" required>
+          {% if agendamento %}<option value="{{ agendamento.hora_inicio }}" selected>{{ agendamento.hora_inicio }} - {{ agendamento.hora_fim }} atual</option>{% else %}<option value="">Selecione serviço e data</option>{% endif %}
+        </select>
+        <div class="form-text">O horário final é calculado pela duração do serviço.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Pacote do pet</label>
+        <select class="form-select" name="pacote_cliente_id" id="pacoteSelect">
+          <option value="">Sem pacote</option>
+          {% if pacote_atual %}
+          <option value="{{ pacote_atual.id }}" selected>{{ pacote_atual.pacote.nome }} - atual</option>
+          {% endif %}
+        </select>
+        <div class="form-text" id="pacoteHelp">Os pacotes disponíveis aparecem após tutor, pet, serviço e data.</div>
+      </div>
+      <div class="col-md-6 d-flex align-items-end">
+        <div class="package-summary w-100" id="pacoteResumo">
+          <i class="bi bi-ticket-perforated"></i>
+          <span>Nenhum pacote aplicado</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Valor</label>
+        <input class="form-control" type="number" min="0" step="0.01" name="valor" id="valorInput" value="{{ agendamento.valor if agendamento else '' }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Status</label>
+        <select class="form-select" name="status">
+          {% for status in ['Agendado','Confirmado','Em atendimento','Pronto','Entregue','Cancelado','Faltou'] %}
+          <option value="{{ status }}" {% if agendamento and agendamento.status == status %}selected{% endif %}>{{ status }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Forma de pagamento</label>
+        <select class="form-select" name="forma_pagamento" id="formaPagamentoSelect">
+          <option value="">Ainda não informado</option>
+          {% for forma in formas %}<option value="{{ forma }}" {% if agendamento and agendamento.forma_pagamento == forma %}selected{% endif %}>{{ forma }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-12 form-check ms-2">
+        <input class="form-check-input" type="checkbox" name="pago" id="pago" {% if agendamento and agendamento.pago %}checked{% endif %}>
+        <label class="form-check-label" for="pago">Já está pago</label>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Observações do atendimento</label>
+        <textarea class="form-control" name="observacoes" rows="4">{{ agendamento.observacoes if agendamento else '' }}</textarea>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-4">
+      <button class="btn btn-primary">Salvar agendamento</button>
+      <a class="btn btn-light" href="{{ url_for('agenda.index') }}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const tutorSelect = document.getElementById('tutorSelect');
+const petSelect = document.getElementById('petSelect');
+const servicoSelect = document.getElementById('servicoSelect');
+const dataInput = document.getElementById('dataInput');
+const horaSelect = document.getElementById('horaSelect');
+const valorInput = document.getElementById('valorInput');
+const pacoteSelect = document.getElementById('pacoteSelect');
+const pacoteHelp = document.getElementById('pacoteHelp');
+const pacoteResumo = document.getElementById('pacoteResumo');
+const formaPagamentoSelect = document.getElementById('formaPagamentoSelect');
+const pagoInput = document.getElementById('pago');
+const editing = {{ 'true' if agendamento else 'false' }};
+const agendamentoId = {{ agendamento.id if agendamento else 'null' }};
+const selectedPetId = {{ agendamento.pet_id if agendamento else 'null' }};
+const pacoteAtualId = {{ pacote_atual.id if pacote_atual else 'null' }};
+
+function valorServicoSelecionado() {
+  return servicoSelect.selectedOptions[0]?.dataset?.valor || '';
+}
+
+function resetPacotes(texto = 'Os pacotes disponíveis aparecem após tutor, pet, serviço e data.') {
+  pacoteSelect.innerHTML = '<option value="">Sem pacote</option>';
+  pacoteHelp.textContent = texto;
+  aplicarPacoteSelecionado();
+}
+
+function aplicarPacoteSelecionado() {
+  const opt = pacoteSelect.selectedOptions[0];
+  const pacoteSelecionado = opt && opt.value;
+  if (pacoteSelecionado) {
+    valorInput.value = '0';
+    valorInput.readOnly = true;
+    formaPagamentoSelect.value = 'Pacote';
+    pagoInput.checked = true;
+    pacoteResumo.classList.add('active');
+    pacoteResumo.innerHTML = '<i class="bi bi-ticket-perforated"></i><span></span>';
+    pacoteResumo.querySelector('span').textContent = `${opt.dataset.nome} • ${opt.dataset.saldo}/${opt.dataset.total} créditos • vence ${opt.dataset.fim}`;
+  } else {
+    valorInput.readOnly = false;
+    pacoteResumo.classList.remove('active');
+    pacoteResumo.innerHTML = '<i class="bi bi-ticket-perforated"></i><span>Nenhum pacote aplicado</span>';
+    if (!valorInput.value || valorInput.value === '0') valorInput.value = valorServicoSelecionado();
+  }
+}
+
+async function carregarPets() {
+  const tutorId = tutorSelect.value;
+  petSelect.innerHTML = '<option value="">Carregando...</option>';
+  resetPacotes();
+  if (!tutorId) {
+    petSelect.innerHTML = '<option value="">Selecione um tutor primeiro</option>';
+    return;
+  }
+  const resp = await fetch(`{{ url_for('agenda.api_pets') }}?tutor_id=${tutorId}`);
+  const pets = await resp.json();
+  petSelect.innerHTML = '<option value="">Selecione</option>';
+  pets.forEach(pet => {
+    const opt = document.createElement('option');
+    opt.value = pet.id;
+    opt.textContent = `${pet.nome} - ${pet.porte}`;
+    if (selectedPetId && Number(selectedPetId) === pet.id) opt.selected = true;
+    petSelect.appendChild(opt);
+  });
+}
+
+async function carregarHorarios() {
+  const servicoId = servicoSelect.value;
+  const data = dataInput.value;
+  const current = horaSelect.value;
+  if (!servicoId || !data) return;
+  const selectedOption = servicoSelect.selectedOptions[0];
+  if (!pacoteSelect.value && !valorInput.value && selectedOption?.dataset?.valor) valorInput.value = selectedOption.dataset.valor;
+  horaSelect.innerHTML = '<option value="">Carregando horários...</option>';
+  const resp = await fetch(`{{ url_for('agenda.api_horarios') }}?servico_id=${servicoId}&data=${data}`);
+  const slots = await resp.json();
+  horaSelect.innerHTML = '<option value="">Selecione</option>';
+  if (editing && current) {
+    const opt = document.createElement('option');
+    opt.value = current;
+    opt.textContent = `${current} atual`;
+    opt.selected = true;
+    horaSelect.appendChild(opt);
+  }
+  slots.forEach(slot => {
+    const opt = document.createElement('option');
+    opt.value = slot.inicio;
+    opt.textContent = `${slot.inicio} - ${slot.fim}`;
+    horaSelect.appendChild(opt);
+  });
+  if (!slots.length && !(editing && current)) horaSelect.innerHTML = '<option value="">Sem horários livres</option>';
+}
+
+async function carregarPacotes() {
+  const tutorId = tutorSelect.value;
+  const petId = petSelect.value;
+  const servicoId = servicoSelect.value;
+  const data = dataInput.value;
+  const selecionado = pacoteSelect.value || pacoteAtualId;
+  if (!tutorId || !petId || !servicoId || !data) {
+    resetPacotes();
+    return;
+  }
+  pacoteSelect.innerHTML = '<option value="">Carregando pacotes...</option>';
+  const resp = await fetch(`{{ url_for('agenda.api_pacotes') }}?tutor_id=${tutorId}&pet_id=${petId}&servico_id=${servicoId}&data=${data}&agendamento_id=${agendamentoId || ''}`);
+  const pacotes = await resp.json();
+  pacoteSelect.innerHTML = '<option value="">Sem pacote</option>';
+  pacotes.forEach(pacote => {
+    const opt = document.createElement('option');
+    opt.value = pacote.id;
+    opt.dataset.nome = pacote.nome;
+    opt.dataset.saldo = pacote.saldo;
+    opt.dataset.total = pacote.total;
+    opt.dataset.fim = pacote.data_fim;
+    opt.textContent = `${pacote.nome} - ${pacote.saldo}/${pacote.total} créditos - vence ${pacote.data_fim}`;
+    if (Number(selecionado) === pacote.id) opt.selected = true;
+    pacoteSelect.appendChild(opt);
+  });
+  pacoteHelp.textContent = pacotes.length ? 'Selecione para consumir 1 crédito neste agendamento.' : 'Nenhum pacote válido para esta combinação.';
+  aplicarPacoteSelecionado();
+}
+
+tutorSelect.addEventListener('change', async () => {
+  await carregarPets();
+  await carregarPacotes();
+});
+petSelect.addEventListener('change', carregarPacotes);
+servicoSelect.addEventListener('change', async () => {
+  if (!pacoteSelect.value) valorInput.value = valorServicoSelecionado();
+  await carregarHorarios();
+  await carregarPacotes();
+});
+dataInput.addEventListener('change', async () => {
+  await carregarHorarios();
+  await carregarPacotes();
+});
+pacoteSelect.addEventListener('change', aplicarPacoteSelecionado);
+if (tutorSelect.value) {
+  carregarPets().then(carregarPacotes);
+}
+if (servicoSelect.value && dataInput.value) carregarHorarios();
+aplicarPacoteSelecionado();
+</script>
+{% endblock %}

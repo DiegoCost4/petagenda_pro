@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Página não encontrada{% endblock %}
+{% block content %}
+<div class="card card-soft p-5 text-center">
+  <h1 class="page-title">404</h1>
+  <p class="subtle">Página não encontrada.</p>
+  <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">Voltar ao início</a>
+</div>
+{% endblock %}

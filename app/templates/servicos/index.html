@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Serviços - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="page-title h3 mb-1">Serviços</h1>
+    <p class="subtle mb-0">Configure duração, preço e pacotes por porte.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-primary" href="{{ url_for('pacotes.novo') }}"><i class="bi bi-tags me-1"></i>Novo pacote</a>
+    <a class="btn btn-primary" href="{{ url_for('servicos.novo') }}"><i class="bi bi-plus-lg me-1"></i>Novo serviço</a>
+  </div>
+</div>
+
+<div class="card card-soft p-3 p-md-4 mb-3">
+  <h2 class="h5 fw-bold mb-3">Tabela de serviços</h2>
+  {% if servicos %}
+  <div class="table-responsive table-card">
+    <div class="grid-scroll">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Serviço</th><th>Porte</th><th>Duração</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for servico in servicos %}
+          <tr>
+            <td class="fw-semibold">{{ servico.nome }}</td>
+            <td>{{ servico.porte }}</td>
+            <td>{{ servico.duracao_minutos }} min</td>
+            <td>{{ servico.valor|brl }}</td>
+            <td><span class="badge text-bg-{{ 'success' if servico.ativo else 'secondary' }} rounded-pill">{{ 'Ativo' if servico.ativo else 'Inativo' }}</span></td>
+            <td class="text-end"><a class="btn btn-sm btn-light" href="{{ url_for('servicos.editar', servico_id=servico.id) }}">Editar</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-center py-5 subtle">Nenhum serviço cadastrado.</div>
+  {% endif %}
+</div>
+
+<div class="card card-soft p-3 p-md-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+      <h2 class="h5 fw-bold mb-1">Pacotes</h2>
+      <p class="subtle mb-0">Modelos usados para vender créditos mensais aos pets.</p>
+    </div>
+    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('pacotes.index') }}">Ver saldos</a>
+  </div>
+  {% if pacotes %}
+  <div class="table-responsive table-card">
+    <div class="grid-scroll">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Pacote</th><th>Serviço</th><th>Créditos</th><th>Validade</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for pacote in pacotes %}
+          <tr>
+            <td class="fw-semibold">{{ pacote.nome }}</td>
+            <td>{{ pacote.servico.nome }} - {{ pacote.servico.porte }}</td>
+            <td>{{ pacote.quantidade_atendimentos }}</td>
+            <td>{{ pacote.validade_dias }} dias</td>
+            <td>{{ pacote.valor|brl }}</td>
+            <td><span class="badge text-bg-{{ 'success' if pacote.ativo else 'secondary' }} rounded-pill">{{ 'Ativo' if pacote.ativo else 'Inativo' }}</span></td>
+            <td class="text-end"><a class="btn btn-sm btn-light" href="{{ url_for('pacotes.editar', pacote_id=pacote.id) }}">Editar</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-center py-5 subtle">Nenhum pacote cadastrado.</div>
+  {% endif %}
+</div>
+{% endblock %}

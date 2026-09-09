@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if pacote_cliente and pacote_cliente.id else 'Vincular' }} pacote - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('pacotes.index') }}" class="text-decoration-none subtle"><i class="bi bi-arrow-left"></i> Pacotes</a>
+  <h1 class="page-title h3 mt-2">{{ 'Editar pacote do cliente' if pacote_cliente and pacote_cliente.id else 'Vincular pacote ao pet' }}</h1>
+</div>
+
+<div class="card card-soft p-3 p-md-4">
+  <form method="post" id="pacoteClienteForm">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Tutor *</label>
+        <select class="form-select" name="tutor_id" id="tutorSelect" required>
+          <option value="">Selecione</option>
+          {% for tutor in tutores %}
+          <option value="{{ tutor.id }}" {% if pacote_cliente and pacote_cliente.tutor_id == tutor.id %}selected{% endif %}>{{ tutor.nome }} - {{ tutor.telefone }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Pet *</label>
+        <select class="form-select" name="pet_id" id="petSelect" required>
+          {% if pets %}
+            <option value="">Selecione</option>
+            {% for pet in pets %}
+            <option value="{{ pet.id }}" {% if pacote_cliente and pacote_cliente.pet_id == pet.id %}selected{% endif %}>{{ pet.nome }} - {{ pet.porte }}</option>
+            {% endfor %}
+          {% else %}
+            <option value="">Selecione um tutor primeiro</option>
+          {% endif %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Pacote *</label>
+        <select class="form-select" name="pacote_id" id="pacoteSelect" required>
+          <option value="">Selecione</option>
+          {% for pacote in pacotes %}
+          <option
+            value="{{ pacote.id }}"
+            data-quantidade="{{ pacote.quantidade_atendimentos }}"
+            data-validade="{{ pacote.validade_dias }}"
+            data-valor="{{ pacote.valor }}"
+            {% if pacote_cliente and pacote_cliente.pacote_id == pacote.id %}selected{% endif %}
+          >{{ pacote.nome }} - {{ pacote.servico.nome }} - {{ pacote.valor|brl }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Data inicial *</label>
+        <input class="form-control" type="date" name="data_inicio" id="dataInicio" value="{{ pacote_cliente.data_inicio.strftime('%Y-%m-%d') if pacote_cliente and pacote_cliente.data_inicio else hoje.strftime('%Y-%m-%d') }}" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Data final *</label>
+        <input class="form-control" type="date" name="data_fim" id="dataFim" value="{{ pacote_cliente.data_fim.strftime('%Y-%m-%d') if pacote_cliente and pacote_cliente.data_fim else '' }}" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Créditos *</label>
+        <input class="form-control" type="number" min="1" step="1" name="quantidade_total" id="quantidadeTotal" value="{{ pacote_cliente.quantidade_total if pacote_cliente and pacote_cliente.quantidade_total else '' }}" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Valor vendido *</label>
+        <input class="form-control" type="number" min="0" step="0.01" name="valor" id="valorPacote" value="{{ pacote_cliente.valor if pacote_cliente and pacote_cliente.valor is not none else '' }}" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Status</label>
+        <select class="form-select" name="status">
+          {% for opt in status_options %}
+          <option value="{{ opt }}" {% if (pacote_cliente and pacote_cliente.status == opt) or ((not pacote_cliente or not pacote_cliente.status) and opt == 'Ativo') %}selected{% endif %}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Forma de pagamento</label>
+        <select class="form-select" name="forma_pagamento">
+          <option value="">Não informado</option>
+          {% for forma in formas %}
+          <option value="{{ forma }}" {% if pacote_cliente and pacote_cliente.forma_pagamento == forma %}selected{% endif %}>{{ forma }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Data pagamento</label>
+        <input class="form-control" type="date" name="data_pagamento" value="{{ pacote_cliente.data_pagamento.strftime('%Y-%m-%d') if pacote_cliente and pacote_cliente.data_pagamento else hoje.strftime('%Y-%m-%d') }}">
+      </div>
+      <div class="col-md-3 d-flex align-items-end">
+        <div class="form-check ms-2 mb-2">
+          <input class="form-check-input" type="checkbox" name="pago" id="pago" {% if pacote_cliente and pacote_cliente.pago %}checked{% endif %}>
+          <label class="form-check-label" for="pago">Pacote pago</label>
+        </div>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Observações</label>
+        <textarea class="form-control" name="observacoes" rows="3">{{ pacote_cliente.observacoes if pacote_cliente else '' }}</textarea>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-4">
+      <button class="btn btn-primary">Salvar vínculo</button>
+      <a href="{{ url_for('pacotes.index') }}" class="btn btn-light">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const tutorSelect = document.getElementById('tutorSelect');
+const petSelect = document.getElementById('petSelect');
+const pacoteSelect = document.getElementById('pacoteSelect');
+const dataInicio = document.getElementById('dataInicio');
+const dataFim = document.getElementById('dataFim');
+const quantidadeTotal = document.getElementById('quantidadeTotal');
+const valorPacote = document.getElementById('valorPacote');
+const selectedPetId = {{ pacote_cliente.pet_id if pacote_cliente and pacote_cliente.pet_id else 'null' }};
+const editing = {{ 'true' if pacote_cliente and pacote_cliente.id else 'false' }};
+
+function addDays(dateValue, days) {
+  if (!dateValue || !days) return '';
+  const date = new Date(`${dateValue}T00:00:00`);
+  date.setDate(date.getDate() + Number(days));
+  return date.toISOString().slice(0, 10);
+}
+
+async function carregarPets() {
+  const tutorId = tutorSelect.value;
+  petSelect.innerHTML = '<option value="">Carregando...</option>';
+  if (!tutorId) {
+    petSelect.innerHTML = '<option value="">Selecione um tutor primeiro</option>';
+    return;
+  }
+  const resp = await fetch(`{{ url_for('agenda.api_pets') }}?tutor_id=${tutorId}`);
+  const pets = await resp.json();
+  petSelect.innerHTML = '<option value="">Selecione</option>';
+  pets.forEach(pet => {
+    const opt = document.createElement('option');
+    opt.value = pet.id;
+    opt.textContent = `${pet.nome} - ${pet.porte}`;
+    if (selectedPetId && Number(selectedPetId) === pet.id) opt.selected = true;
+    petSelect.appendChild(opt);
+  });
+}
+
+function aplicarPacoteDefaults(force = false) {
+  const opt = pacoteSelect.selectedOptions[0];
+  if (!opt || !opt.value) return;
+  if (force || !editing || !quantidadeTotal.value) quantidadeTotal.value = opt.dataset.quantidade || '';
+  if (force || !editing || !valorPacote.value) valorPacote.value = opt.dataset.valor || '';
+  if ((force || !editing || !dataFim.value) && dataInicio.value) dataFim.value = addDays(dataInicio.value, opt.dataset.validade);
+}
+
+tutorSelect.addEventListener('change', carregarPets);
+pacoteSelect.addEventListener('change', () => aplicarPacoteDefaults(true));
+dataInicio.addEventListener('change', () => aplicarPacoteDefaults(true));
+if (!editing) aplicarPacoteDefaults();
+</script>
+{% endblock %}

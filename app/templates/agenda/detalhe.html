@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Agendamento {{ agendamento.id }} - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <a href="{{ url_for('agenda.index', data=agendamento.data.strftime('%Y-%m-%d')) }}" class="text-decoration-none subtle"><i class="bi bi-arrow-left"></i> Agenda</a>
+    <h1 class="page-title h3 mt-2 mb-0">{{ agendamento.pet.nome }}</h1>
+    <p class="subtle mb-0">{{ agendamento.data.strftime('%d/%m/%Y') }} • {{ agendamento.hora_inicio }} às {{ agendamento.hora_fim }}</p>
+  </div>
+  <span class="badge text-bg-{{ agendamento.badge_class }} rounded-pill fs-6 px-3 py-2">{{ agendamento.status }}</span>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold mb-3">Dados do atendimento</h2>
+      <div class="row g-3">
+        <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Tutor</div><div class="fw-bold">{{ agendamento.tutor.nome }}</div><div class="small">{{ agendamento.tutor.telefone }}</div></div></div>
+        <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Serviço</div><div class="fw-bold">{{ agendamento.servico.nome }}</div><div class="small">{{ agendamento.servico.duracao_minutos }} minutos • {{ agendamento.valor|brl }}</div></div></div>
+        <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Pagamento</div><div class="fw-bold">{{ 'Pago' if agendamento.pago else 'Pendente' }}</div><div class="small">{{ agendamento.forma_pagamento or 'Forma não informada' }}</div></div></div>
+        <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Pet</div><div class="fw-bold">{{ agendamento.pet.nome }} - {{ agendamento.pet.porte }}</div><div class="small">{{ agendamento.pet.raca or 'Sem raça informada' }}</div></div></div>
+      </div>
+      {% if agendamento.coberto_por_pacote %}
+      <div class="package-summary active mt-3">
+        <i class="bi bi-ticket-perforated"></i>
+        <span>{{ agendamento.pacote_cliente.pacote.nome }} • {{ agendamento.pacote_cliente.saldo }} créditos livres</span>
+      </div>
+      {% endif %}
+      <hr>
+      <h3 class="h6 fw-bold">Observações do atendimento</h3>
+      <p class="mb-0">{{ agendamento.observacoes or 'Nenhuma observação.' }}</p>
+    </div>
+
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Cuidados do pet</h2>
+      <p><strong>Observações:</strong><br>{{ agendamento.pet.observacoes or '-' }}</p>
+      <p class="mb-0"><strong>Restrições:</strong><br>{{ agendamento.pet.restricoes or '-' }}</p>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold mb-3">Atualizar status</h2>
+      <form method="post" action="{{ url_for('agenda.status', agendamento_id=agendamento.id) }}" class="d-grid gap-2">
+        <select name="status" class="form-select">
+          {% for status in status_options %}<option value="{{ status }}" {% if agendamento.status == status %}selected{% endif %}>{{ status }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-primary">Atualizar</button>
+      </form>
+    </div>
+
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold mb-3">WhatsApp</h2>
+      <div class="d-grid gap-2">
+        <a class="btn btn-success" href="{{ msg_confirmacao }}" target="_blank"><i class="bi bi-whatsapp me-1"></i>Confirmar agendamento</a>
+        <a class="btn btn-outline-success" href="{{ msg_pronto }}" target="_blank"><i class="bi bi-whatsapp me-1"></i>Avisar que está pronto</a>
+      </div>
+    </div>
+
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold mb-3">Pagamento</h2>
+      {% if agendamento.coberto_por_pacote %}
+        <p class="{{ 'text-success' if agendamento.is_ativo else 'text-muted' }} fw-bold"><i class="bi bi-ticket-perforated"></i> {{ 'Coberto pelo pacote' if agendamento.is_ativo else 'Pacote vinculado, crédito devolvido' }}</p>
+        <a class="btn btn-outline-primary w-100" href="{{ url_for('pacotes.cliente_detalhe', pacote_cliente_id=agendamento.pacote_cliente.id) }}">Abrir saldo do pacote</a>
+      {% elif agendamento.pago %}
+        <p class="text-success fw-bold"><i class="bi bi-check-circle"></i> Pagamento registrado</p>
+        <form method="post" action="{{ url_for('financeiro.estornar', agendamento_id=agendamento.id) }}" data-confirm="Remover pagamento deste agendamento?">
+          <button class="btn btn-outline-danger w-100">Remover pagamento</button>
+        </form>
+      {% else %}
+        <form method="post" action="{{ url_for('financeiro.pagar', agendamento_id=agendamento.id) }}" class="vstack gap-2">
+          <input type="hidden" name="valor" value="{{ agendamento.valor }}">
+          <select name="forma_pagamento" class="form-select">
+            <option value="Pix">Pix</option>
+            <option value="Dinheiro">Dinheiro</option>
+            <option value="Cartão de débito">Cartão de débito</option>
+            <option value="Cartão de crédito">Cartão de crédito</option>
+          </select>
+          <button class="btn btn-primary">Marcar como pago</button>
+        </form>
+      {% endif %}
+    </div>
+
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Ações</h2>
+      <div class="d-grid gap-2">
+        <a class="btn btn-light" href="{{ url_for('agenda.editar', agendamento_id=agendamento.id) }}"><i class="bi bi-pencil me-1"></i>Editar</a>
+        <form method="post" action="{{ url_for('agenda.excluir', agendamento_id=agendamento.id) }}" data-confirm="Deseja excluir este agendamento?">
+          <button class="btn btn-outline-danger w-100"><i class="bi bi-trash me-1"></i>Excluir</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

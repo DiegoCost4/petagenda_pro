@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Agenda - PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="page-title h3 mb-1">Agenda</h1>
+    <p class="subtle mb-0">{{ data_ref.strftime('%d/%m/%Y') }}</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('agenda.novo', data=data_ref.strftime('%Y-%m-%d')) }}"><i class="bi bi-plus-lg me-1"></i>Novo agendamento</a>
+</div>
+
+<div class="card card-soft p-3 p-md-4 mb-3">
+  <form class="row g-2 align-items-end">
+    <div class="col-12 col-md-4">
+      <label class="form-label">Data</label>
+      <input class="form-control" type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
+    </div>
+    <div class="col-12 col-md-4">
+      <label class="form-label">Status</label>
+      <select class="form-select" name="status">
+        <option value="">Todos</option>
+        {% for opt in status_options %}<option value="{{ opt }}" {% if status == opt %}selected{% endif %}>{{ opt }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-4 d-flex gap-2">
+      <button class="btn btn-outline-primary flex-fill"><i class="bi bi-search"></i> Filtrar</button>
+      <a class="btn btn-light" href="{{ url_for('agenda.index', data=ontem.strftime('%Y-%m-%d')) }}"><i class="bi bi-chevron-left"></i></a>
+      <a class="btn btn-light" href="{{ url_for('agenda.index', data=amanha.strftime('%Y-%m-%d')) }}"><i class="bi bi-chevron-right"></i></a>
+    </div>
+  </form>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Atendimentos do dia</h2>
+      {% if agendamentos %}
+        <div class="vstack gap-3">
+          {% for item in agendamentos %}
+            <a href="{{ url_for('agenda.detalhe', agendamento_id=item.id) }}" class="text-decoration-none text-dark">
+              <div class="bg-light rounded-4 p-3 d-flex justify-content-between gap-3 align-items-center">
+                <div>
+                  <div class="fw-bold fs-5">{{ item.hora_inicio }} - {{ item.hora_fim }}</div>
+                  <div class="fw-semibold">{{ item.pet.nome }} <span class="subtle fw-normal">({{ item.pet.porte }})</span></div>
+                  <div class="subtle small">
+                    {{ item.tutor.nome }} • {{ item.servico.nome }} •
+                    {% if item.coberto_por_pacote %}
+                      <span class="text-success fw-semibold"><i class="bi bi-ticket-perforated"></i> Pacote</span>
+                    {% else %}
+                      {{ item.valor|brl }}
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="text-end">
+                  <span class="badge text-bg-{{ item.badge_class }} rounded-pill">{{ item.status }}</span>
+                  {% if item.coberto_por_pacote %}
+                    <div class="small {{ 'text-success' if item.is_ativo else 'text-muted' }} mt-1">{{ 'Crédito usado' if item.is_ativo else 'Crédito devolvido' }}</div>
+                  {% elif item.pago %}
+                    <div class="small text-success mt-1"><i class="bi bi-check-circle"></i> Pago</div>
+                  {% else %}
+                    <div class="small text-muted mt-1">Pendente</div>
+                  {% endif %}
+                </div>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-5 subtle">Nenhum agendamento nesta data.</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Bloqueios do dia</h2>
+      {% if bloqueios %}
+        {% for b in bloqueios %}
+          <div class="bg-light rounded-4 p-3 mb-2">
+            <div class="fw-bold">{{ b.hora_inicio }} - {{ b.hora_fim }}</div>
+            <div class="subtle small">{{ b.motivo }}</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="subtle">Nenhum bloqueio nesta data.</p>
+      {% endif %}
+      <a href="{{ url_for('configuracoes.index') }}" class="btn btn-outline-primary w-100">Gerenciar bloqueios</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
