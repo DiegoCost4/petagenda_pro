@@ -1,0 +1,38 @@
+name: Deploy PetAgenda
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: petagenda-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy produção
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configurar SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Executar deploy
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh \
+            -i ~/.ssh/id_ed25519 \
+            "$VPS_USER@$VPS_HOST" \
+            "sudo /usr/local/bin/deploy-petagenda"
