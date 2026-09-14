@@ -16,7 +16,7 @@
       <h2 class="h5 fw-bold mb-3">Dados do atendimento</h2>
       <div class="row g-3">
         <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Tutor</div><div class="fw-bold">{{ agendamento.tutor.nome }}</div><div class="small">{{ agendamento.tutor.telefone }}</div></div></div>
-        <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Serviço</div><div class="fw-bold">{{ agendamento.servico.nome }}</div><div class="small">{{ agendamento.servico.duracao_minutos }} minutos • {{ agendamento.valor|brl }}</div></div></div>
+        <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Serviço</div><div class="fw-bold">{{ agendamento.servicos_descricao }}</div><div class="small">{{ agendamento.duracao_total_minutos }} minutos • {{ agendamento.valor_resumo }}</div></div></div>
         <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Pagamento</div><div class="fw-bold">{{ 'Pago' if agendamento.pago else 'Pendente' }}</div><div class="small">{{ agendamento.forma_pagamento or 'Forma não informada' }}</div></div></div>
         <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Pet</div><div class="fw-bold">{{ agendamento.pet.nome }} - {{ agendamento.pet.porte }}</div><div class="small">{{ agendamento.pet.raca or 'Sem raça informada' }}</div></div></div>
       </div>
@@ -58,7 +58,7 @@
 
     <div class="card card-soft p-3 p-md-4 mb-3">
       <h2 class="h5 fw-bold mb-3">Pagamento</h2>
-      {% if agendamento.coberto_por_pacote %}
+      {% if agendamento.coberto_por_pacote and agendamento.valor <= 0 %}
         <p class="{{ 'text-success' if agendamento.is_ativo else 'text-muted' }} fw-bold"><i class="bi bi-ticket-perforated"></i> {{ 'Coberto pelo pacote' if agendamento.is_ativo else 'Pacote vinculado, crédito devolvido' }}</p>
         <a class="btn btn-outline-primary w-100" href="{{ url_for('pacotes.cliente_detalhe', pacote_cliente_id=agendamento.pacote_cliente.id) }}">Abrir saldo do pacote</a>
       {% elif agendamento.pago %}

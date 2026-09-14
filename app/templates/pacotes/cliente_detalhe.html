@@ -39,7 +39,7 @@
             <div class="timeline-item">
               <div class="d-flex justify-content-between gap-2">
                 <div>
-                  <div class="fw-bold">{{ agendamento.data.strftime('%d/%m/%Y') }} às {{ agendamento.hora_inicio }} - {{ agendamento.servico.nome }}</div>
+                  <div class="fw-bold">{{ agendamento.data.strftime('%d/%m/%Y') }} às {{ agendamento.hora_inicio }} - {{ agendamento.servicos_descricao }}</div>
                   <div class="subtle small">{{ agendamento.status }}{% if agendamento.is_ativo %} • 1 crédito consumido{% else %} • crédito devolvido{% endif %}</div>
                 </div>
                 <span class="badge text-bg-{{ agendamento.badge_class }} rounded-pill align-self-start">{{ agendamento.status }}</span>

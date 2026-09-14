@@ -23,6 +23,17 @@
       <p class="mb-1"><strong>Sexo:</strong> {{ pet.sexo or '-' }}</p>
       <p class="mb-1"><strong>Idade:</strong> {{ pet.idade or '-' }}</p>
       <p class="mb-1"><strong>Peso:</strong> {{ pet.peso or '-' }}</p>
+      <p class="mb-1"><strong>Aniversário:</strong> {{ pet.aniversario_formatado }}</p>
+      {% set dias_aniversario = pet.dias_para_aniversario() %}
+      {% if dias_aniversario is not none and dias_aniversario <= 7 %}
+      <div class="birthday-alert mt-3 mb-0">
+        <i class="bi bi-gift-fill"></i>
+        <div>
+          <strong>{% if dias_aniversario == 0 %}Aniversário hoje{% elif dias_aniversario == 1 %}Aniversário amanhã{% else %}Aniversário em {{ dias_aniversario }} dias{% endif %}</strong>
+          <div class="small">Preparar um mimo para {{ pet.nome }}.</div>
+        </div>
+      </div>
+      {% endif %}
       <hr>
       <p class="mb-1"><strong>Observações:</strong><br>{{ pet.observacoes or '-' }}</p>
       <p class="mb-0"><strong>Restrições:</strong><br>{{ pet.restricoes or '-' }}</p>
@@ -62,7 +73,7 @@
         <a href="{{ url_for('agenda.detalhe', agendamento_id=item.id) }}" class="text-decoration-none text-dark">
           <div class="timeline-item">
             <div class="fw-bold">{{ item.data.strftime('%d/%m/%Y') }} às {{ item.hora_inicio }}</div>
-            <div class="subtle small">{{ item.servico.nome }} • {{ 'Pacote' if item.coberto_por_pacote else item.valor|brl }} • {{ item.status }}</div>
+            <div class="subtle small">{{ item.servicos_descricao }} • {{ item.valor_resumo }} • {{ item.status }}</div>
             {% if item.observacoes %}<div class="small mt-1">{{ item.observacoes }}</div>{% endif %}
           </div>
         </a>

@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime
 from uuid import uuid4
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required
@@ -25,6 +26,15 @@ def save_photo(file_storage):
     upload_dir.mkdir(parents=True, exist_ok=True)
     file_storage.save(upload_dir / filename)
     return f"uploads/{filename}"
+
+
+def parse_date(value):
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        return None
 
 
 @bp.route("/")
@@ -55,6 +65,7 @@ def novo():
             sexo=request.form.get("sexo", "").strip() or None,
             idade=request.form.get("idade", "").strip() or None,
             peso=request.form.get("peso", "").strip() or None,
+            data_aniversario=parse_date(request.form.get("data_aniversario")),
             foto=foto,
             observacoes=request.form.get("observacoes", "").strip() or None,
             restricoes=request.form.get("restricoes", "").strip() or None,
@@ -98,6 +109,7 @@ def editar(pet_id):
         pet.sexo = request.form.get("sexo", "").strip() or None
         pet.idade = request.form.get("idade", "").strip() or None
         pet.peso = request.form.get("peso", "").strip() or None
+        pet.data_aniversario = parse_date(request.form.get("data_aniversario"))
         pet.observacoes = request.form.get("observacoes", "").strip() or None
         pet.restricoes = request.form.get("restricoes", "").strip() or None
         pet.ativo = bool(request.form.get("ativo"))

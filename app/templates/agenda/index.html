@@ -38,14 +38,14 @@
         <div class="vstack gap-3">
           {% for item in agendamentos %}
             <a href="{{ url_for('agenda.detalhe', agendamento_id=item.id) }}" class="text-decoration-none text-dark">
-              <div class="bg-light rounded-4 p-3 d-flex justify-content-between gap-3 align-items-center">
+              <div class="appointment-row bg-light rounded-4 p-3 d-flex justify-content-between gap-3 align-items-center">
                 <div>
                   <div class="fw-bold fs-5">{{ item.hora_inicio }} - {{ item.hora_fim }}</div>
                   <div class="fw-semibold">{{ item.pet.nome }} <span class="subtle fw-normal">({{ item.pet.porte }})</span></div>
                   <div class="subtle small">
-                    {{ item.tutor.nome }} • {{ item.servico.nome }} •
+                    {{ item.tutor.nome }} • {{ item.servicos_descricao }} •
                     {% if item.coberto_por_pacote %}
-                      <span class="text-success fw-semibold"><i class="bi bi-ticket-perforated"></i> Pacote</span>
+                      <span class="text-success fw-semibold"><i class="bi bi-ticket-perforated"></i> Pacote</span>{% if item.valor > 0 %} + {{ item.valor|brl }}{% endif %}
                     {% else %}
                       {{ item.valor|brl }}
                     {% endif %}
@@ -55,6 +55,9 @@
                   <span class="badge text-bg-{{ item.badge_class }} rounded-pill">{{ item.status }}</span>
                   {% if item.coberto_por_pacote %}
                     <div class="small {{ 'text-success' if item.is_ativo else 'text-muted' }} mt-1">{{ 'Crédito usado' if item.is_ativo else 'Crédito devolvido' }}</div>
+                    {% if item.valor > 0 %}
+                      <div class="small {{ 'text-success' if item.pago else 'text-warning' }}">{{ 'Extra pago' if item.pago else 'Extra pendente' }}</div>
+                    {% endif %}
                   {% elif item.pago %}
                     <div class="small text-success mt-1"><i class="bi bi-check-circle"></i> Pago</div>
                   {% else %}

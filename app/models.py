@@ -1,4 +1,5 @@
 from datetime import datetime, date
+from decimal import Decimal
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from .extensions import db
@@ -62,6 +63,7 @@ class Pet(TimestampMixin, db.Model):
     sexo = db.Column(db.String(20))
     idade = db.Column(db.String(50))
     peso = db.Column(db.String(30))
+    data_aniversario = db.Column(db.Date)
     foto = db.Column(db.String(255))
     observacoes = db.Column(db.Text)
     restricoes = db.Column(db.Text)
@@ -70,6 +72,25 @@ class Pet(TimestampMixin, db.Model):
     tutor = db.relationship("Tutor", back_populates="pets")
     agendamentos = db.relationship("Agendamento", back_populates="pet")
     pacotes_clientes = db.relationship("PacoteCliente", back_populates="pet")
+
+    @property
+    def aniversario_formatado(self):
+        return self.data_aniversario.strftime("%d/%m/%Y") if self.data_aniversario else "-"
+
+    def dias_para_aniversario(self, data_ref=None):
+        if not self.data_aniversario:
+            return None
+        data_ref = data_ref or date.today()
+        try:
+            proximo = self.data_aniversario.replace(year=data_ref.year)
+        except ValueError:
+            proximo = date(data_ref.year, 2, 28)
+        if proximo < data_ref:
+            try:
+                proximo = self.data_aniversario.replace(year=data_ref.year + 1)
+            except ValueError:
+                proximo = date(data_ref.year + 1, 2, 28)
+        return (proximo - data_ref).days
 
 
 class Servico(TimestampMixin, db.Model):
@@ -84,6 +105,7 @@ class Servico(TimestampMixin, db.Model):
     observacoes = db.Column(db.Text)
 
     agendamentos = db.relationship("Agendamento", back_populates="servico")
+    agendamentos_itens = db.relationship("AgendamentoServico", back_populates="servico")
     pacotes = db.relationship("Pacote", back_populates="servico")
 
     @property
@@ -256,6 +278,12 @@ class Agendamento(TimestampMixin, db.Model):
     tutor = db.relationship("Tutor", back_populates="agendamentos")
     pet = db.relationship("Pet", back_populates="agendamentos")
     servico = db.relationship("Servico", back_populates="agendamentos")
+    servicos_itens = db.relationship(
+        "AgendamentoServico",
+        back_populates="agendamento",
+        cascade="all, delete-orphan",
+        order_by="AgendamentoServico.ordem",
+    )
     pagamento = db.relationship("Pagamento", back_populates="agendamento", uselist=False, cascade="all, delete-orphan")
     pacote_uso = db.relationship("UsoPacote", back_populates="agendamento", uselist=False, cascade="all, delete-orphan")
 
@@ -272,6 +300,42 @@ class Agendamento(TimestampMixin, db.Model):
         return self.pacote_uso is not None
 
     @property
+    def valor_resumo(self):
+        valor = Decimal(self.valor or 0)
+        valor_formatado = f"R$ {float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        if self.coberto_por_pacote and valor > 0:
+            return f"Pacote + {valor_formatado}"
+        if self.coberto_por_pacote:
+            return "Pacote"
+        return valor_formatado
+
+    @property
+    def servicos_lista(self):
+        if self.servicos_itens:
+            return [item.servico for item in self.servicos_itens if item.servico]
+        return [self.servico] if self.servico else []
+
+    @property
+    def servico_ids(self):
+        return [servico.id for servico in self.servicos_lista]
+
+    @property
+    def servicos_descricao(self):
+        nomes = [servico.nome for servico in self.servicos_lista]
+        return " + ".join(nomes) if nomes else "-"
+
+    @property
+    def servicos_descricao_completa(self):
+        descricoes = [servico.descricao for servico in self.servicos_lista]
+        return " + ".join(descricoes) if descricoes else "-"
+
+    @property
+    def duracao_total_minutos(self):
+        if self.servicos_itens:
+            return sum(item.duracao_minutos or 0 for item in self.servicos_itens)
+        return self.servico.duracao_minutos if self.servico else 0
+
+    @property
     def badge_class(self):
         return {
             "Agendado": "secondary",
@@ -285,12 +349,25 @@ class Agendamento(TimestampMixin, db.Model):
 
     @property
     def whatsapp_confirmacao(self):
-        msg = f"Olá! Confirmando o agendamento do {self.pet.nome} para {self.data.strftime('%d/%m/%Y')} às {self.hora_inicio}. Serviço: {self.servico.nome}."
-        return msg
+        return f"Olá! Confirmando o agendamento do {self.pet.nome} para {self.data.strftime('%d/%m/%Y')} às {self.hora_inicio}. Serviço(s): {self.servicos_descricao}."
 
     @property
     def whatsapp_pronto(self):
         return f"Olá! O {self.pet.nome} já está pronto para retirada."
+
+
+class AgendamentoServico(TimestampMixin, db.Model):
+    __tablename__ = "agendamentos_servicos"
+
+    id = db.Column(db.Integer, primary_key=True)
+    agendamento_id = db.Column(db.Integer, db.ForeignKey("agendamentos.id"), nullable=False, index=True)
+    servico_id = db.Column(db.Integer, db.ForeignKey("servicos.id"), nullable=False, index=True)
+    ordem = db.Column(db.Integer, default=0, nullable=False)
+    valor = db.Column(db.Numeric(10, 2), nullable=False)
+    duracao_minutos = db.Column(db.Integer, nullable=False)
+
+    agendamento = db.relationship("Agendamento", back_populates="servicos_itens")
+    servico = db.relationship("Servico", back_populates="agendamentos_itens")
 
 
 class Pagamento(TimestampMixin, db.Model):

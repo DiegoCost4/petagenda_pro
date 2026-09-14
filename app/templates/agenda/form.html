@@ -25,12 +25,23 @@
           {% endif %}
         </select>
       </div>
-      <div class="col-md-5">
-        <label class="form-label">Serviço *</label>
-        <select class="form-select" name="servico_id" id="servicoSelect" required>
-          <option value="">Selecione</option>
-          {% for servico in servicos %}<option value="{{ servico.id }}" data-valor="{{ servico.valor }}" data-duracao="{{ servico.duracao_minutos }}" {% if agendamento and agendamento.servico_id == servico.id %}selected{% endif %}>{{ servico.descricao }} - {{ servico.valor|brl }}</option>{% endfor %}
-        </select>
+      <div class="col-lg-6">
+        <label class="form-label">Serviços *</label>
+        <div class="service-picker" id="servicoPicker">
+          {% for servico in servicos %}
+          <label class="service-option">
+            <input class="form-check-input service-checkbox" type="checkbox" name="servico_ids" value="{{ servico.id }}" data-valor="{{ servico.valor }}" data-duracao="{{ servico.duracao_minutos }}" data-nome="{{ servico.nome }}" {% if servico.id in selected_servico_ids %}checked{% endif %}>
+            <span class="flex-grow-1">
+              <span class="service-option-title d-block">{{ servico.nome }} - {{ servico.porte }}</span>
+              <span class="subtle small">{{ servico.duracao_minutos }} min - {{ servico.valor|brl }}</span>
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+        <div class="service-summary mt-2" id="servicoResumo">
+          <i class="bi bi-scissors"></i>
+          <span>Selecione pelo menos um serviço</span>
+        </div>
       </div>
       <div class="col-md-3">
         <label class="form-label">Data *</label>
@@ -48,7 +59,7 @@
         <select class="form-select" name="pacote_cliente_id" id="pacoteSelect">
           <option value="">Sem pacote</option>
           {% if pacote_atual %}
-          <option value="{{ pacote_atual.id }}" selected>{{ pacote_atual.pacote.nome }} - atual</option>
+          <option value="{{ pacote_atual.id }}" data-nome="{{ pacote_atual.pacote.nome }}" data-servico-id="{{ pacote_atual.pacote.servico_id }}" data-servico-nome="{{ pacote_atual.pacote.servico.nome }}" data-saldo="{{ pacote_atual.saldo }}" data-total="{{ pacote_atual.quantidade_total }}" data-fim="{{ pacote_atual.data_fim.strftime('%d/%m/%Y') }}" selected>{{ pacote_atual.pacote.nome }} - atual</option>
           {% endif %}
         </select>
         <div class="form-text" id="pacoteHelp">Os pacotes disponíveis aparecem após tutor, pet, serviço e data.</div>
@@ -96,9 +107,11 @@
 {% endblock %}
 {% block scripts %}
 <script>
+const agendamentoForm = document.getElementById('agendamentoForm');
 const tutorSelect = document.getElementById('tutorSelect');
 const petSelect = document.getElementById('petSelect');
-const servicoSelect = document.getElementById('servicoSelect');
+const serviceCheckboxes = Array.from(document.querySelectorAll('.service-checkbox'));
+const servicoResumo = document.getElementById('servicoResumo');
 const dataInput = document.getElementById('dataInput');
 const horaSelect = document.getElementById('horaSelect');
 const valorInput = document.getElementById('valorInput');
@@ -111,9 +124,60 @@ const editing = {{ 'true' if agendamento else 'false' }};
 const agendamentoId = {{ agendamento.id if agendamento else 'null' }};
 const selectedPetId = {{ agendamento.pet_id if agendamento else 'null' }};
 const pacoteAtualId = {{ pacote_atual.id if pacote_atual else 'null' }};
+const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
-function valorServicoSelecionado() {
-  return servicoSelect.selectedOptions[0]?.dataset?.valor || '';
+function servicosSelecionados() {
+  return serviceCheckboxes
+    .filter(input => input.checked)
+    .map(input => ({
+      id: Number(input.value),
+      nome: input.dataset.nome || '',
+      valor: Number(input.dataset.valor || 0),
+      duracao: Number(input.dataset.duracao || 0),
+    }));
+}
+
+function servicoIdsSelecionados() {
+  return servicosSelecionados().map(servico => servico.id);
+}
+
+function totalValorServicos() {
+  return servicosSelecionados().reduce((total, servico) => total + servico.valor, 0);
+}
+
+function totalDuracaoServicos() {
+  return servicosSelecionados().reduce((total, servico) => total + servico.duracao, 0);
+}
+
+function pacoteSelecionado() {
+  const opt = pacoteSelect.selectedOptions[0];
+  return opt && opt.value ? opt : null;
+}
+
+function valorCobertoPorPacote() {
+  const pacote = pacoteSelecionado();
+  if (!pacote) return 0;
+  const servicoId = Number(pacote.dataset.servicoId || 0);
+  const servicoCoberto = servicosSelecionados().find(servico => servico.id === servicoId);
+  return servicoCoberto ? servicoCoberto.valor : 0;
+}
+
+function valorCobradoAtual() {
+  return Math.max(totalValorServicos() - valorCobertoPorPacote(), 0);
+}
+
+function atualizarResumoServicos(syncValor = true) {
+  const servicos = servicosSelecionados();
+  if (!servicos.length) {
+    servicoResumo.querySelector('span').textContent = 'Selecione pelo menos um serviço';
+    if (syncValor) valorInput.value = '';
+    return;
+  }
+  const textoServico = servicos.length === 1 ? '1 serviço' : `${servicos.length} serviços`;
+  servicoResumo.querySelector('span').textContent = `${textoServico} - ${totalDuracaoServicos()} min - ${currencyFormatter.format(totalValorServicos())}`;
+  if (syncValor && !pacoteSelecionado()) {
+    valorInput.value = totalValorServicos().toFixed(2);
+  }
 }
 
 function resetPacotes(texto = 'Os pacotes disponíveis aparecem após tutor, pet, serviço e data.') {
@@ -123,21 +187,29 @@ function resetPacotes(texto = 'Os pacotes disponíveis aparecem após tutor, pet
 }
 
 function aplicarPacoteSelecionado() {
-  const opt = pacoteSelect.selectedOptions[0];
-  const pacoteSelecionado = opt && opt.value;
-  if (pacoteSelecionado) {
-    valorInput.value = '0';
-    valorInput.readOnly = true;
-    formaPagamentoSelect.value = 'Pacote';
-    pagoInput.checked = true;
+  const opt = pacoteSelecionado();
+  if (opt) {
+    const valorCobrado = valorCobradoAtual();
+    valorInput.value = valorCobrado.toFixed(2);
+    valorInput.readOnly = valorCobrado <= 0;
+    if (valorCobrado <= 0) {
+      formaPagamentoSelect.value = 'Pacote';
+      pagoInput.checked = true;
+    } else if (formaPagamentoSelect.value === 'Pacote') {
+      formaPagamentoSelect.value = '';
+      pagoInput.checked = false;
+    }
     pacoteResumo.classList.add('active');
     pacoteResumo.innerHTML = '<i class="bi bi-ticket-perforated"></i><span></span>';
-    pacoteResumo.querySelector('span').textContent = `${opt.dataset.nome} • ${opt.dataset.saldo}/${opt.dataset.total} créditos • vence ${opt.dataset.fim}`;
+    pacoteResumo.querySelector('span').textContent = `${opt.dataset.nome} cobre ${opt.dataset.servicoNome || 'um serviço'} - ${opt.dataset.saldo}/${opt.dataset.total} créditos - vence ${opt.dataset.fim}`;
   } else {
     valorInput.readOnly = false;
     pacoteResumo.classList.remove('active');
     pacoteResumo.innerHTML = '<i class="bi bi-ticket-perforated"></i><span>Nenhum pacote aplicado</span>';
-    if (!valorInput.value || valorInput.value === '0') valorInput.value = valorServicoSelecionado();
+    const valorTotal = totalValorServicos();
+    if (valorTotal > 0 && (!editing || !valorInput.value || valorInput.value === '0')) {
+      valorInput.value = valorTotal.toFixed(2);
+    }
   }
 }
 
@@ -162,14 +234,18 @@ async function carregarPets() {
 }
 
 async function carregarHorarios() {
-  const servicoId = servicoSelect.value;
+  const duracao = totalDuracaoServicos();
   const data = dataInput.value;
   const current = horaSelect.value;
-  if (!servicoId || !data) return;
-  const selectedOption = servicoSelect.selectedOptions[0];
-  if (!pacoteSelect.value && !valorInput.value && selectedOption?.dataset?.valor) valorInput.value = selectedOption.dataset.valor;
+  if (!duracao || !data) {
+    horaSelect.innerHTML = '<option value="">Selecione serviço e data</option>';
+    return;
+  }
+  if (!pacoteSelecionado() && (!editing || !valorInput.value || valorInput.value === '0')) {
+    valorInput.value = totalValorServicos().toFixed(2);
+  }
   horaSelect.innerHTML = '<option value="">Carregando horários...</option>';
-  const resp = await fetch(`{{ url_for('agenda.api_horarios') }}?servico_id=${servicoId}&data=${data}`);
+  const resp = await fetch(`{{ url_for('agenda.api_horarios') }}?duracao_minutos=${duracao}&data=${data}`);
   const slots = await resp.json();
   horaSelect.innerHTML = '<option value="">Selecione</option>';
   if (editing && current) {
@@ -191,29 +267,38 @@ async function carregarHorarios() {
 async function carregarPacotes() {
   const tutorId = tutorSelect.value;
   const petId = petSelect.value;
-  const servicoId = servicoSelect.value;
+  const servicoIds = servicoIdsSelecionados();
   const data = dataInput.value;
   const selecionado = pacoteSelect.value || pacoteAtualId;
-  if (!tutorId || !petId || !servicoId || !data) {
+  if (!tutorId || !petId || !servicoIds.length || !data) {
     resetPacotes();
     return;
   }
   pacoteSelect.innerHTML = '<option value="">Carregando pacotes...</option>';
-  const resp = await fetch(`{{ url_for('agenda.api_pacotes') }}?tutor_id=${tutorId}&pet_id=${petId}&servico_id=${servicoId}&data=${data}&agendamento_id=${agendamentoId || ''}`);
+  const params = new URLSearchParams({
+    tutor_id: tutorId,
+    pet_id: petId,
+    servico_ids: servicoIds.join(','),
+    data,
+    agendamento_id: agendamentoId || '',
+  });
+  const resp = await fetch(`{{ url_for('agenda.api_pacotes') }}?${params.toString()}`);
   const pacotes = await resp.json();
   pacoteSelect.innerHTML = '<option value="">Sem pacote</option>';
   pacotes.forEach(pacote => {
     const opt = document.createElement('option');
     opt.value = pacote.id;
     opt.dataset.nome = pacote.nome;
+    opt.dataset.servicoId = pacote.servico_id;
+    opt.dataset.servicoNome = pacote.servico_nome;
     opt.dataset.saldo = pacote.saldo;
     opt.dataset.total = pacote.total;
     opt.dataset.fim = pacote.data_fim;
-    opt.textContent = `${pacote.nome} - ${pacote.saldo}/${pacote.total} créditos - vence ${pacote.data_fim}`;
+    opt.textContent = `${pacote.nome} - ${pacote.servico_nome} - ${pacote.saldo}/${pacote.total} créditos - vence ${pacote.data_fim}`;
     if (Number(selecionado) === pacote.id) opt.selected = true;
     pacoteSelect.appendChild(opt);
   });
-  pacoteHelp.textContent = pacotes.length ? 'Selecione para consumir 1 crédito neste agendamento.' : 'Nenhum pacote válido para esta combinação.';
+  pacoteHelp.textContent = pacotes.length ? 'Selecione para consumir 1 crédito no serviço coberto.' : 'Nenhum pacote válido para esta combinação.';
   aplicarPacoteSelecionado();
 }
 
@@ -222,20 +307,30 @@ tutorSelect.addEventListener('change', async () => {
   await carregarPacotes();
 });
 petSelect.addEventListener('change', carregarPacotes);
-servicoSelect.addEventListener('change', async () => {
-  if (!pacoteSelect.value) valorInput.value = valorServicoSelecionado();
-  await carregarHorarios();
-  await carregarPacotes();
+serviceCheckboxes.forEach(input => {
+  input.addEventListener('change', async () => {
+    atualizarResumoServicos(true);
+    await carregarHorarios();
+    await carregarPacotes();
+  });
 });
 dataInput.addEventListener('change', async () => {
   await carregarHorarios();
   await carregarPacotes();
 });
 pacoteSelect.addEventListener('change', aplicarPacoteSelecionado);
+agendamentoForm.addEventListener('submit', event => {
+  if (!servicosSelecionados().length) {
+    event.preventDefault();
+    alert('Selecione pelo menos um serviço.');
+  }
+});
+
+atualizarResumoServicos(!editing);
 if (tutorSelect.value) {
   carregarPets().then(carregarPacotes);
 }
-if (servicoSelect.value && dataInput.value) carregarHorarios();
+if (servicosSelecionados().length && dataInput.value) carregarHorarios();
 aplicarPacoteSelecionado();
 </script>
 {% endblock %}

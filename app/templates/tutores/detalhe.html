@@ -82,7 +82,7 @@
       {% for item in tutor.agendamentos|sort(attribute='data', reverse=True) %}
         <div class="timeline-item">
           <div class="fw-bold">{{ item.data.strftime('%d/%m/%Y') }} às {{ item.hora_inicio }} - {{ item.pet.nome }}</div>
-          <div class="subtle small">{{ item.servico.nome }} • {{ 'Pacote' if item.coberto_por_pacote else item.valor|brl }} • {{ item.status }}</div>
+          <div class="subtle small">{{ item.servicos_descricao }} • {{ item.valor_resumo }} • {{ item.status }}</div>
         </div>
       {% else %}
         <p class="subtle">Nenhum agendamento ainda.</p>

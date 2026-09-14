@@ -44,11 +44,11 @@
             <tr>
               <td>{{ item.data.strftime('%d/%m/%Y') }}</td>
               <td><strong>{{ item.pet.nome }}</strong><br><small class="subtle">{{ item.tutor.nome }}</small></td>
-              <td>{{ item.servico.nome }}</td>
-              <td>{% if item.coberto_por_pacote %}<span class="text-success fw-semibold">Pacote</span>{% else %}{{ item.valor|brl }}{% endif %}</td>
-              <td>{% if item.coberto_por_pacote %}<span class="badge text-bg-success rounded-pill">Pacote</span>{% elif item.pago %}<span class="badge text-bg-success rounded-pill">Pago</span>{% else %}<span class="badge text-bg-warning rounded-pill">Pendente</span>{% endif %}</td>
+              <td>{{ item.servicos_descricao }}</td>
+              <td>{% if item.coberto_por_pacote and item.valor > 0 %}<span class="text-success fw-semibold">Pacote</span> + {{ item.valor|brl }}{% elif item.coberto_por_pacote %}<span class="text-success fw-semibold">Pacote</span>{% else %}{{ item.valor|brl }}{% endif %}</td>
+              <td>{% if item.coberto_por_pacote and item.valor <= 0 %}<span class="badge text-bg-success rounded-pill">Pacote</span>{% elif item.pago %}<span class="badge text-bg-success rounded-pill">Pago</span>{% else %}<span class="badge text-bg-warning rounded-pill">Pendente</span>{% endif %}</td>
               <td class="text-end">
-                {% if not item.pago and not item.coberto_por_pacote %}
+                {% if not item.pago and item.valor > 0 %}
                   <form method="post" action="{{ url_for('financeiro.pagar', agendamento_id=item.id) }}" class="d-inline">
                     <input type="hidden" name="valor" value="{{ item.valor }}">
                     <input type="hidden" name="forma_pagamento" value="Pix">

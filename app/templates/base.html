@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#35B7A8">
   <title>{% block title %}PetAgenda Pro{% endblock %}</title>
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
@@ -50,6 +50,21 @@
         </div>
       {% endif %}
     {% endwith %}
+    {% if pet_birthday_alerts %}
+      <div class="birthday-alert alert alert-warning shadow-sm" role="alert">
+        <i class="bi bi-gift-fill"></i>
+        <div>
+          <strong>Aniversário de pet</strong>
+          <div class="small">
+            {% for alerta in pet_birthday_alerts %}
+              <a href="{{ url_for('pets.detalhe', pet_id=alerta.pet.id) }}" class="alert-link">{{ alerta.pet.nome }}</a>
+              {% if alerta.dias == 0 %}faz aniversário hoje{% elif alerta.dias == 1 %}faz aniversário amanhã{% else %}faz aniversário em {{ alerta.dias }} dias{% endif %}{% if not loop.last %}; {% endif %}
+            {% endfor %}
+            . Separar um mimo.
+          </div>
+        </div>
+      </div>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 

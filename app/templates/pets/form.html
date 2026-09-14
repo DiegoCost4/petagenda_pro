@@ -54,6 +54,10 @@
         <input class="form-control" name="peso" value="{{ pet.peso if pet else '' }}" placeholder="Ex.: 8 kg">
       </div>
       <div class="col-md-3">
+        <label class="form-label">Data de aniversário</label>
+        <input class="form-control" type="date" name="data_aniversario" value="{{ pet.data_aniversario.strftime('%Y-%m-%d') if pet and pet.data_aniversario else '' }}">
+      </div>
+      <div class="col-md-3">
         <label class="form-label">Foto</label>
         <input class="form-control" type="file" name="foto" accept="image/*">
       </div>

@@ -1,10 +1,12 @@
 from pathlib import Path
+from datetime import date
 import click
 from flask import Flask, render_template
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
+from sqlalchemy import inspect, text
 from .extensions import db
-from .models import User, HorarioFuncionamento, Servico
+from .models import User, HorarioFuncionamento, Servico, Pet
 
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
@@ -28,6 +30,7 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
+    ensure_schema(app)
 
     from .routes.auth import bp as auth_bp
     from .routes.dashboard import bp as dashboard_bp
@@ -58,8 +61,34 @@ def create_app():
         db.session.rollback()
         return render_template("errors/500.html"), 500
 
+    @app.context_processor
+    def inject_pet_birthday_alerts():
+        if not current_user.is_authenticated:
+            return {"pet_birthday_alerts": []}
+        hoje = date.today()
+        pets = Pet.query.filter(Pet.ativo.is_(True), Pet.data_aniversario.isnot(None)).all()
+        alertas = []
+        for pet in pets:
+            dias = pet.dias_para_aniversario(hoje)
+            if dias is not None and dias <= 7:
+                alertas.append({"pet": pet, "dias": dias})
+        alertas.sort(key=lambda item: (item["dias"], item["pet"].nome))
+        return {"pet_birthday_alerts": alertas[:5]}
+
     register_commands(app)
     return app
+
+
+def ensure_schema(app):
+    with app.app_context():
+        db.create_all()
+        inspector = inspect(db.engine)
+        if "pets" not in inspector.get_table_names():
+            return
+        columns = {column["name"] for column in inspector.get_columns("pets")}
+        if "data_aniversario" not in columns:
+            with db.engine.begin() as connection:
+                connection.execute(text("ALTER TABLE pets ADD COLUMN data_aniversario DATE"))
 
 
 def register_commands(app):
