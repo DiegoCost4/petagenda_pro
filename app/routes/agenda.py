@@ -284,7 +284,15 @@ def detalhe(agendamento_id):
     agendamento = db.get_or_404(Agendamento, agendamento_id)
     msg_confirmacao = whatsapp_url(agendamento.tutor.telefone, agendamento.whatsapp_confirmacao)
     msg_pronto = whatsapp_url(agendamento.tutor.telefone, agendamento.whatsapp_pronto)
-    return render_template("agenda/detalhe.html", agendamento=agendamento, status_options=STATUS_AGENDAMENTO, msg_confirmacao=msg_confirmacao, msg_pronto=msg_pronto)
+    msg_taxi_dog = whatsapp_url(agendamento.tutor.telefone, agendamento.whatsapp_taxi_dog)
+    return render_template(
+        "agenda/detalhe.html",
+        agendamento=agendamento,
+        status_options=STATUS_AGENDAMENTO,
+        msg_confirmacao=msg_confirmacao,
+        msg_pronto=msg_pronto,
+        msg_taxi_dog=msg_taxi_dog,
+    )
 
 
 @bp.route("/<int:agendamento_id>/editar", methods=["GET", "POST"])

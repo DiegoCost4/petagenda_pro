@@ -355,6 +355,10 @@ class Agendamento(TimestampMixin, db.Model):
     def whatsapp_pronto(self):
         return f"Olá! O {self.pet.nome} já está pronto para retirada."
 
+    @property
+    def whatsapp_taxi_dog(self):
+        return f"Olá! O {self.pet.nome} já está pronto! Nossa equipe já vai levá-lo para casa com o táxi dog."
+
 
 class AgendamentoServico(TimestampMixin, db.Model):
     __tablename__ = "agendamentos_servicos"
