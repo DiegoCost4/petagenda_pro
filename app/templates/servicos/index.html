@@ -24,7 +24,7 @@
           <tr>
             <td class="fw-semibold">{{ servico.nome }}</td>
             <td>{{ servico.porte }}</td>
-            <td>{{ servico.duracao_minutos }} min</td>
+            <td>{% if servico.duracao_minutos %}{{ servico.duracao_minutos }} min{% else %}<span class="subtle">Sem tempo adicional</span>{% endif %}</td>
             <td>{{ servico.valor|brl }}</td>
             <td><span class="badge text-bg-{{ 'success' if servico.ativo else 'secondary' }} rounded-pill">{{ 'Ativo' if servico.ativo else 'Inativo' }}</span></td>
             <td class="text-end"><a class="btn btn-sm btn-light" href="{{ url_for('servicos.editar', servico_id=servico.id) }}">Editar</a></td>

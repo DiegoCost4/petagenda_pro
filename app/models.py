@@ -99,7 +99,7 @@ class Servico(TimestampMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(120), nullable=False, index=True)
     porte = db.Column(db.String(30), nullable=False)
-    duracao_minutos = db.Column(db.Integer, nullable=False)
+    duracao_minutos = db.Column(db.Integer, default=0, nullable=False)
     valor = db.Column(db.Numeric(10, 2), nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     observacoes = db.Column(db.Text)
@@ -110,7 +110,8 @@ class Servico(TimestampMixin, db.Model):
 
     @property
     def descricao(self):
-        return f"{self.nome} - {self.porte} ({self.duracao_minutos}min)"
+        duracao = f"{self.duracao_minutos}min" if self.duracao_minutos else "sem tempo adicional"
+        return f"{self.nome} - {self.porte} ({duracao})"
 
 
 class Pacote(TimestampMixin, db.Model):

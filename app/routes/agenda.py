@@ -29,15 +29,24 @@ def parse_date_or_today(value):
 def render_agendamento_form(agendamento, tutores, servicos, data_padrao, selected_servico_ids=None):
     if selected_servico_ids is None:
         selected_servico_ids = agendamento.servico_ids if agendamento else []
+    dados = request.form if request.method == "POST" else request.args
+    selected_tutor_id = dados.get("tutor_id", type=int) or (agendamento.tutor_id if agendamento else None)
+    selected_pet_id = dados.get("pet_id", type=int) or (agendamento.pet_id if agendamento else None)
+    selected_hora_inicio = dados.get("hora_inicio", "") or (agendamento.hora_inicio if agendamento else "")
+    pets_tutor = Pet.query.filter_by(tutor_id=selected_tutor_id, ativo=True).order_by(Pet.nome).all() if selected_tutor_id else []
     return render_template(
         "agenda/form.html",
         agendamento=agendamento,
         tutores=tutores,
         servicos=servicos,
         formas=FORMAS_PAGAMENTO,
-        data_padrao=data_padrao,
+        data_padrao=dados.get("data") or data_padrao,
         pacote_atual=agendamento.pacote_cliente if agendamento else None,
         selected_servico_ids=selected_servico_ids,
+        selected_tutor_id=selected_tutor_id,
+        selected_pet_id=selected_pet_id,
+        selected_hora_inicio=selected_hora_inicio,
+        pets_tutor=pets_tutor,
     )
 
 
@@ -101,7 +110,7 @@ def sincronizar_servicos_agendamento(agendamento, servicos):
             servico_id=servico.id,
             ordem=ordem,
             valor=Decimal(servico.valor or 0),
-            duracao_minutos=servico.duracao_minutos,
+            duracao_minutos=servico.duracao_minutos or 0,
         )
         for ordem, servico in enumerate(servicos)
     ]
@@ -246,7 +255,7 @@ def novo():
             flash(message, "warning")
             return render_agendamento_form(None, tutores, servicos, data_agendamento.strftime("%Y-%m-%d"), selected_servico_ids)
 
-        if has_conflict(data_agendamento, hora_inicio, hora_fim):
+        if has_conflict(data_agendamento, hora_inicio, hora_fim, tutor_id=tutor_id, pet_id=pet_id):
             flash("Já existe agendamento ou bloqueio neste intervalo.", "danger")
             return render_agendamento_form(None, tutores, servicos, data_agendamento.strftime("%Y-%m-%d"), selected_servico_ids)
 
@@ -342,7 +351,10 @@ def editar(agendamento_id):
         if not inside:
             flash(message, "warning")
             return render_agendamento_form(agendamento, tutores, servicos, data_agendamento.strftime("%Y-%m-%d"), selected_servico_ids)
-        if has_conflict(data_agendamento, hora_inicio, hora_fim, ignore_id=agendamento.id):
+        if has_conflict(
+            data_agendamento, hora_inicio, hora_fim, ignore_id=agendamento.id,
+            tutor_id=tutor_id, pet_id=pet_id,
+        ):
             flash("Já existe agendamento ou bloqueio neste intervalo.", "danger")
             return render_agendamento_form(agendamento, tutores, servicos, data_agendamento.strftime("%Y-%m-%d"), selected_servico_ids)
 
@@ -430,7 +442,10 @@ def api_pacotes():
 
     agendamento = db.session.get(Agendamento, agendamento_id) if agendamento_id else None
     pacote_atual_id = agendamento.pacote_cliente.id if agendamento and agendamento.pacote_cliente else None
-    if pacote_atual_id and all(item.id != pacote_atual_id for item in pacotes):
+    if (
+        pacote_atual_id and agendamento.tutor_id == tutor_id and agendamento.pet_id == pet_id
+        and all(item.id != pacote_atual_id for item in pacotes)
+    ):
         pacotes.append(agendamento.pacote_cliente)
 
     resposta = []
@@ -466,12 +481,25 @@ def api_servico(servico_id):
 @login_required
 def api_horarios():
     data_ref = parse_date_or_today(request.args.get("data"))
-    duracao_minutos = request.args.get("duracao_minutos", type=int) or request.args.get("duracao", type=int)
-    if not duracao_minutos:
-        servico_ids = parse_servico_ids_query()
-        servicos = Servico.query.filter(Servico.id.in_(servico_ids), Servico.ativo.is_(True)).all() if servico_ids else []
-        duracao_minutos = calcular_duracao_servicos(servicos)
-    if not duracao_minutos:
+    tutor_id = request.args.get("tutor_id", type=int)
+    pet_id = request.args.get("pet_id", type=int)
+    if (tutor_id or pet_id) and validar_pet_tutor(tutor_id, pet_id):
         return jsonify([])
-    slots = generate_available_slots(data_ref, duracao_minutos)
+
+    servico_ids = parse_servico_ids_query()
+    if servico_ids:
+        servicos = Servico.query.filter(Servico.id.in_(servico_ids), Servico.ativo.is_(True)).all()
+        if len(servicos) != len(servico_ids):
+            return jsonify([])
+        duracao_minutos = calcular_duracao_servicos(servicos)
+    else:
+        duracao_minutos = request.args.get("duracao_minutos", type=int)
+        if duracao_minutos is None:
+            duracao_minutos = request.args.get("duracao", type=int)
+    if duracao_minutos is None or duracao_minutos < 0:
+        return jsonify([])
+    slots = generate_available_slots(
+        data_ref, duracao_minutos, tutor_id=tutor_id, pet_id=pet_id,
+        ignore_id=request.args.get("agendamento_id", type=int),
+    )
     return jsonify(slots)

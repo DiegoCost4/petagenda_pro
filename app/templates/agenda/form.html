@@ -12,17 +12,14 @@
         <label class="form-label">Tutor *</label>
         <select class="form-select" name="tutor_id" id="tutorSelect" required>
           <option value="">Selecione</option>
-          {% for tutor in tutores %}<option value="{{ tutor.id }}" {% if agendamento and agendamento.tutor_id == tutor.id %}selected{% endif %}>{{ tutor.nome }} - {{ tutor.telefone }}</option>{% endfor %}
+          {% for tutor in tutores %}<option value="{{ tutor.id }}" {% if selected_tutor_id == tutor.id %}selected{% endif %}>{{ tutor.nome }} - {{ tutor.telefone }}</option>{% endfor %}
         </select>
       </div>
       <div class="col-md-6">
         <label class="form-label">Pet *</label>
         <select class="form-select" name="pet_id" id="petSelect" required>
-          {% if agendamento %}
-            {% for pet in agendamento.tutor.pets %}<option value="{{ pet.id }}" {% if agendamento.pet_id == pet.id %}selected{% endif %}>{{ pet.nome }} - {{ pet.porte }}</option>{% endfor %}
-          {% else %}
-            <option value="">Selecione um tutor primeiro</option>
-          {% endif %}
+          <option value="">{{ 'Selecione' if selected_tutor_id else 'Selecione um tutor primeiro' }}</option>
+          {% for pet in pets_tutor %}<option value="{{ pet.id }}" {% if selected_pet_id == pet.id %}selected{% endif %}>{{ pet.nome }} - {{ pet.porte }}</option>{% endfor %}
         </select>
       </div>
       <div class="col-lg-6">
@@ -33,7 +30,7 @@
             <input class="form-check-input service-checkbox" type="checkbox" name="servico_ids" value="{{ servico.id }}" data-valor="{{ servico.valor }}" data-duracao="{{ servico.duracao_minutos }}" data-nome="{{ servico.nome }}" {% if servico.id in selected_servico_ids %}checked{% endif %}>
             <span class="flex-grow-1">
               <span class="service-option-title d-block">{{ servico.nome }} - {{ servico.porte }}</span>
-              <span class="subtle small">{{ servico.duracao_minutos }} min - {{ servico.valor|brl }}</span>
+              <span class="subtle small">{% if servico.duracao_minutos %}{{ servico.duracao_minutos }} min{% else %}Sem tempo adicional{% endif %} - {{ servico.valor|brl }}</span>
             </span>
           </label>
           {% endfor %}
@@ -45,14 +42,13 @@
       </div>
       <div class="col-md-3">
         <label class="form-label">Data *</label>
-        <input class="form-control" type="date" name="data" id="dataInput" value="{{ agendamento.data.strftime('%Y-%m-%d') if agendamento else data_padrao }}" required>
+        <input class="form-control" type="date" name="data" id="dataInput" value="{{ data_padrao }}" required>
       </div>
       <div class="col-md-4">
         <label class="form-label">Horário disponível *</label>
         <select class="form-select" name="hora_inicio" id="horaSelect" required>
-          {% if agendamento %}<option value="{{ agendamento.hora_inicio }}" selected>{{ agendamento.hora_inicio }} - {{ agendamento.hora_fim }} atual</option>{% else %}<option value="">Selecione serviço e data</option>{% endif %}
+          <option value="">Selecione pet, serviço e data</option>
         </select>
-        <div class="form-text">O horário final é calculado pela duração do serviço.</div>
       </div>
       <div class="col-md-6">
         <label class="form-label">Pacote do pet</label>
@@ -122,7 +118,9 @@ const formaPagamentoSelect = document.getElementById('formaPagamentoSelect');
 const pagoInput = document.getElementById('pago');
 const editing = {{ 'true' if agendamento else 'false' }};
 const agendamentoId = {{ agendamento.id if agendamento else 'null' }};
-const selectedPetId = {{ agendamento.pet_id if agendamento else 'null' }};
+let horarioPreferido = {{ selected_hora_inicio|tojson }};
+let horariosRequestId = 0;
+let petsRequestId = 0;
 const pacoteAtualId = {{ pacote_atual.id if pacote_atual else 'null' }};
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -174,7 +172,9 @@ function atualizarResumoServicos(syncValor = true) {
     return;
   }
   const textoServico = servicos.length === 1 ? '1 serviço' : `${servicos.length} serviços`;
-  servicoResumo.querySelector('span').textContent = `${textoServico} - ${totalDuracaoServicos()} min - ${currencyFormatter.format(totalValorServicos())}`;
+  const duracao = totalDuracaoServicos();
+  const textoDuracao = duracao ? `${duracao} min` : 'Sem tempo adicional';
+  servicoResumo.querySelector('span').textContent = `${textoServico} - ${textoDuracao} - ${currencyFormatter.format(totalValorServicos())}`;
   if (syncValor && !pacoteSelecionado()) {
     valorInput.value = totalValorServicos().toFixed(2);
   }
@@ -214,54 +214,74 @@ function aplicarPacoteSelecionado() {
 }
 
 async function carregarPets() {
+  const requestId = ++petsRequestId;
   const tutorId = tutorSelect.value;
+  petSelect.disabled = true;
   petSelect.innerHTML = '<option value="">Carregando...</option>';
+  carregarHorarios();
   resetPacotes();
   if (!tutorId) {
     petSelect.innerHTML = '<option value="">Selecione um tutor primeiro</option>';
     return;
   }
-  const resp = await fetch(`{{ url_for('agenda.api_pets') }}?tutor_id=${tutorId}`);
-  const pets = await resp.json();
-  petSelect.innerHTML = '<option value="">Selecione</option>';
-  pets.forEach(pet => {
-    const opt = document.createElement('option');
-    opt.value = pet.id;
-    opt.textContent = `${pet.nome} - ${pet.porte}`;
-    if (selectedPetId && Number(selectedPetId) === pet.id) opt.selected = true;
-    petSelect.appendChild(opt);
-  });
+  try {
+    const resp = await fetch(`{{ url_for('agenda.api_pets') }}?tutor_id=${tutorId}`);
+    if (!resp.ok) throw new Error('Pets indisponíveis');
+    const pets = await resp.json();
+    if (requestId !== petsRequestId) return;
+    petSelect.innerHTML = '<option value="">Selecione</option>';
+    pets.forEach(pet => {
+      const opt = document.createElement('option');
+      opt.value = pet.id;
+      opt.textContent = `${pet.nome} - ${pet.porte}`;
+      petSelect.appendChild(opt);
+    });
+    petSelect.disabled = false;
+  } catch (error) {
+    if (requestId === petsRequestId) petSelect.innerHTML = '<option value="">Não foi possível carregar os pets</option>';
+  }
 }
 
 async function carregarHorarios() {
-  const duracao = totalDuracaoServicos();
+  const requestId = ++horariosRequestId;
+  const servicoIds = servicoIdsSelecionados();
   const data = dataInput.value;
-  const current = horaSelect.value;
-  if (!duracao || !data) {
-    horaSelect.innerHTML = '<option value="">Selecione serviço e data</option>';
+  const current = horaSelect.value || horarioPreferido;
+  if (horaSelect.value) horarioPreferido = horaSelect.value;
+  horaSelect.disabled = true;
+  if (!servicoIds.length || !data || !tutorSelect.value || !petSelect.value) {
+    horaSelect.innerHTML = '<option value="">Selecione pet, serviço e data</option>';
     return;
   }
   if (!pacoteSelecionado() && (!editing || !valorInput.value || valorInput.value === '0')) {
     valorInput.value = totalValorServicos().toFixed(2);
   }
   horaSelect.innerHTML = '<option value="">Carregando horários...</option>';
-  const resp = await fetch(`{{ url_for('agenda.api_horarios') }}?duracao_minutos=${duracao}&data=${data}`);
-  const slots = await resp.json();
-  horaSelect.innerHTML = '<option value="">Selecione</option>';
-  if (editing && current) {
-    const opt = document.createElement('option');
-    opt.value = current;
-    opt.textContent = `${current} atual`;
-    opt.selected = true;
-    horaSelect.appendChild(opt);
-  }
-  slots.forEach(slot => {
-    const opt = document.createElement('option');
-    opt.value = slot.inicio;
-    opt.textContent = `${slot.inicio} - ${slot.fim}`;
-    horaSelect.appendChild(opt);
+  const params = new URLSearchParams({
+    servico_ids: servicoIds.join(','),
+    data,
+    tutor_id: tutorSelect.value,
+    pet_id: petSelect.value,
+    agendamento_id: agendamentoId || '',
   });
-  if (!slots.length && !(editing && current)) horaSelect.innerHTML = '<option value="">Sem horários livres</option>';
+  try {
+    const resp = await fetch(`{{ url_for('agenda.api_horarios') }}?${params.toString()}`);
+    if (!resp.ok) throw new Error('Horários indisponíveis');
+    const slots = await resp.json();
+    if (requestId !== horariosRequestId) return;
+    horaSelect.innerHTML = '<option value="">Selecione</option>';
+    slots.forEach(slot => {
+      const opt = document.createElement('option');
+      opt.value = slot.inicio;
+      opt.textContent = slot.inicio === slot.fim ? slot.inicio : `${slot.inicio} - ${slot.fim}`;
+      opt.selected = slot.inicio === current;
+      horaSelect.appendChild(opt);
+    });
+    if (!slots.length) horaSelect.innerHTML = '<option value="">Sem horários livres</option>';
+    horaSelect.disabled = !slots.length;
+  } catch (error) {
+    if (requestId === horariosRequestId) horaSelect.innerHTML = '<option value="">Não foi possível carregar os horários</option>';
+  }
 }
 
 async function carregarPacotes() {
@@ -306,7 +326,11 @@ tutorSelect.addEventListener('change', async () => {
   await carregarPets();
   await carregarPacotes();
 });
-petSelect.addEventListener('change', carregarPacotes);
+petSelect.addEventListener('change', () => {
+  carregarHorarios();
+  carregarPacotes();
+});
+horaSelect.addEventListener('change', () => { horarioPreferido = horaSelect.value; });
 serviceCheckboxes.forEach(input => {
   input.addEventListener('change', async () => {
     atualizarResumoServicos(true);
@@ -323,14 +347,15 @@ agendamentoForm.addEventListener('submit', event => {
   if (!servicosSelecionados().length) {
     event.preventDefault();
     alert('Selecione pelo menos um serviço.');
+  } else if (horaSelect.disabled || !horaSelect.value) {
+    event.preventDefault();
+    alert('Selecione um horário disponível.');
   }
 });
 
 atualizarResumoServicos(!editing);
-if (tutorSelect.value) {
-  carregarPets().then(carregarPacotes);
-}
-if (servicosSelecionados().length && dataInput.value) carregarHorarios();
+if (petSelect.value) carregarPacotes();
+carregarHorarios();
 aplicarPacoteSelecionado();
 </script>
 {% endblock %}

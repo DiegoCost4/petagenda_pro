@@ -29,10 +29,15 @@ def add_minutes_to_time(hora: str, minutos: int) -> str:
 
 
 def intervals_overlap(start_a: str, end_a: str, start_b: str, end_b: str) -> bool:
+    # Sem duracao, a reserva representa apenas o instante de chegada.
+    if start_a == end_a:
+        return start_a == start_b or start_b <= start_a < end_b
+    if start_b == end_b:
+        return start_a <= start_b < end_a
     return start_a < end_b and start_b < end_a
 
 
-def has_conflict(data_agendamento: date, hora_inicio: str, hora_fim: str, ignore_id=None) -> bool:
+def has_conflict(data_agendamento: date, hora_inicio: str, hora_fim: str, ignore_id=None, *, tutor_id=None, pet_id=None) -> bool:
     query = Agendamento.query.filter(
         Agendamento.data == data_agendamento,
         Agendamento.status.notin_(["Cancelado", "Faltou"]),
@@ -40,6 +45,13 @@ def has_conflict(data_agendamento: date, hora_inicio: str, hora_fim: str, ignore
     if ignore_id:
         query = query.filter(Agendamento.id != ignore_id)
     for item in query.all():
+        if (
+            tutor_id and pet_id
+            and item.tutor_id == tutor_id
+            and item.pet_id != pet_id
+            and item.hora_inicio == hora_inicio
+        ):
+            continue
         if intervals_overlap(hora_inicio, hora_fim, item.hora_inicio, item.hora_fim):
             return True
 
@@ -54,7 +66,10 @@ def validate_inside_business_hours(data_agendamento: date, hora_inicio: str, hor
     if not horario or not horario.ativo:
         return False, "A pet não atende neste dia da semana."
 
-    if hora_inicio < horario.hora_inicio or hora_fim > horario.hora_fim:
+    if hora_fim < hora_inicio:
+        return False, "O atendimento deve terminar no mesmo dia."
+
+    if hora_inicio < horario.hora_inicio or hora_inicio >= horario.hora_fim or hora_fim > horario.hora_fim:
         return False, f"Horário fora do funcionamento: {horario.hora_inicio} às {horario.hora_fim}."
 
     if horario.pausa_inicio and horario.pausa_fim:
@@ -64,21 +79,43 @@ def validate_inside_business_hours(data_agendamento: date, hora_inicio: str, hor
     return True, "OK"
 
 
-def generate_available_slots(data_agendamento: date, duracao_minutos: int, step_minutes: int = 30):
+def generate_available_slots(data_agendamento: date, duracao_minutos: int, step_minutes: int = 30, *, tutor_id=None, pet_id=None, ignore_id=None):
+    if duracao_minutos < 0 or step_minutes <= 0:
+        return []
     horario = HorarioFuncionamento.query.filter_by(dia_semana=data_agendamento.weekday()).first()
     if not horario or not horario.ativo:
         return []
 
-    slots = []
+    candidatos = set()
     current = datetime.combine(data_agendamento, parse_time(horario.hora_inicio))
     fim = datetime.combine(data_agendamento, parse_time(horario.hora_fim))
-    while current + timedelta(minutes=duracao_minutos) <= fim:
-        inicio_str = current.strftime("%H:%M")
-        fim_str = (current + timedelta(minutes=duracao_minutos)).strftime("%H:%M")
-        inside, _ = validate_inside_business_hours(data_agendamento, inicio_str, fim_str)
-        if inside and not has_conflict(data_agendamento, inicio_str, fim_str):
-            slots.append({"inicio": inicio_str, "fim": fim_str})
+    while current < fim and current + timedelta(minutes=duracao_minutos) <= fim:
+        candidatos.add(current.strftime("%H:%M"))
         current += timedelta(minutes=step_minutes)
+
+    if tutor_id and pet_id:
+        existentes = Agendamento.query.filter(
+            Agendamento.data == data_agendamento,
+            Agendamento.tutor_id == tutor_id,
+            Agendamento.status.notin_(["Cancelado", "Faltou"]),
+        ).all()
+        for item in existentes:
+            if item.pet_id != pet_id or item.id == ignore_id:
+                candidatos.add(item.hora_inicio)
+
+    slots = []
+    for inicio_str in sorted(candidatos):
+        inicio = datetime.combine(data_agendamento, parse_time(inicio_str))
+        termino = inicio + timedelta(minutes=duracao_minutos)
+        if termino > fim:
+            continue
+        fim_str = termino.strftime("%H:%M")
+        inside, _ = validate_inside_business_hours(data_agendamento, inicio_str, fim_str)
+        if inside and not has_conflict(
+            data_agendamento, inicio_str, fim_str, ignore_id,
+            tutor_id=tutor_id, pet_id=pet_id,
+        ):
+            slots.append({"inicio": inicio_str, "fim": fim_str})
     return slots
 
 

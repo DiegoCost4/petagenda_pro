@@ -19,8 +19,8 @@
         </select>
       </div>
       <div class="col-md-2">
-        <label class="form-label">Duração *</label>
-        <input class="form-control" type="number" min="10" step="5" name="duracao_minutos" value="{{ servico.duracao_minutos if servico else '' }}" placeholder="min" required>
+        <label class="form-label">Duração (min)</label>
+        <input class="form-control" type="number" min="0" step="1" name="duracao_minutos" value="{{ (servico.duracao_minutos or '') if servico else '' }}" placeholder="Opcional">
       </div>
       <div class="col-md-2">
         <label class="form-label">Valor *</label>
