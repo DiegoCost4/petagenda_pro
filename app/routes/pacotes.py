@@ -160,6 +160,20 @@ def inativar(pacote_id):
     return redirect(url_for("pacotes.index"))
 
 
+@bp.route("/<int:pacote_id>/excluir", methods=["POST"])
+@login_required
+def excluir(pacote_id):
+    pacote = db.get_or_404(Pacote, pacote_id)
+    if pacote.clientes:
+        flash("Este modelo ja tem pacotes vinculados e nao pode ser excluido.", "warning")
+        return redirect(request.referrer or url_for("pacotes.index"))
+
+    db.session.delete(pacote)
+    db.session.commit()
+    flash("Modelo de pacote excluido.", "info")
+    return redirect(url_for("pacotes.index"))
+
+
 @bp.route("/cliente/novo", methods=["GET", "POST"])
 @login_required
 def cliente_novo():
@@ -244,6 +258,20 @@ def cliente_encerrar(pacote_cliente_id):
     db.session.commit()
     flash("Pacote encerrado.", "info")
     return redirect(request.referrer or url_for("pacotes.index"))
+
+
+@bp.route("/cliente/<int:pacote_cliente_id>/excluir", methods=["POST"])
+@login_required
+def cliente_excluir(pacote_cliente_id):
+    pacote_cliente = db.get_or_404(PacoteCliente, pacote_cliente_id)
+    if pacote_cliente.usos:
+        flash("Pacotes com consumo na agenda nao podem ser excluidos. Remova o vinculo dos agendamentos antes.", "warning")
+        return redirect(request.referrer or url_for("pacotes.cliente_detalhe", pacote_cliente_id=pacote_cliente.id))
+
+    db.session.delete(pacote_cliente)
+    db.session.commit()
+    flash("Pacote excluido e removido do financeiro.", "info")
+    return redirect(url_for("pacotes.index"))
 
 
 def validate_cliente_form(allow_inactive_id=None):

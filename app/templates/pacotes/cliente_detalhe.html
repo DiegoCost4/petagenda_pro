@@ -72,6 +72,13 @@
           <button class="btn btn-outline-danger w-100">Encerrar pacote</button>
         </form>
         {% endif %}
+        {% if not usos %}
+        <form method="post" action="{{ url_for('pacotes.cliente_excluir', pacote_cliente_id=pacote_cliente.id) }}" data-confirm="Excluir este pacote? Esta acao remove o valor do financeiro.">
+          <button class="btn btn-outline-danger w-100"><i class="bi bi-trash me-1"></i>Excluir pacote</button>
+        </form>
+        {% else %}
+        <div class="small subtle">Pacotes com consumo registrado nao podem ser excluidos.</div>
+        {% endif %}
       </div>
     </div>
   </div>

@@ -61,7 +61,16 @@
             <td>{{ pacote.validade_dias }} dias</td>
             <td>{{ pacote.valor|brl }}</td>
             <td><span class="badge text-bg-{{ 'success' if pacote.ativo else 'secondary' }} rounded-pill">{{ 'Ativo' if pacote.ativo else 'Inativo' }}</span></td>
-            <td class="text-end"><a class="btn btn-sm btn-light" href="{{ url_for('pacotes.editar', pacote_id=pacote.id) }}">Editar</a></td>
+            <td class="text-end">
+              <div class="d-flex justify-content-end gap-2">
+                <a class="btn btn-sm btn-light" href="{{ url_for('pacotes.editar', pacote_id=pacote.id) }}">Editar</a>
+                {% if not pacote.clientes %}
+                <form method="post" action="{{ url_for('pacotes.excluir', pacote_id=pacote.id) }}" data-confirm="Excluir este modelo de pacote?">
+                  <button class="btn btn-sm btn-outline-danger" aria-label="Excluir modelo de pacote"><i class="bi bi-trash"></i></button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
           </tr>
           {% endfor %}
         </tbody>

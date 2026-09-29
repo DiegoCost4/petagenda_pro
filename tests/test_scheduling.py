@@ -234,6 +234,72 @@ class SchedulingTests(unittest.TestCase):
         })
         self.assertEqual([item['id'] for item in response.json], [packages[1].id])
 
+    def test_client_package_can_be_deleted_before_use_and_leaves_finance(self):
+        model = Pacote(servico=self.bath, nome='Mensal', quantidade_atendimentos=4, validade_dias=30, valor=180)
+        package = PacoteCliente(
+            pacote=model, tutor=self.tutor, pet=self.pet,
+            data_inicio=self.day, data_fim=date(2030, 2, 1), quantidade_total=4, valor=180,
+            pago=True, forma_pagamento='Pix', data_pagamento=self.day,
+        )
+        db.session.add(package)
+        db.session.commit()
+        package_id = package.id
+
+        response = self.client.get('/financeiro/', query_string={
+            'data_ini': self.day.isoformat(),
+            'data_fim': self.day.isoformat(),
+        })
+        self.assertIn('Mensal', response.get_data(as_text=True))
+
+        response = self.client.post(f'/pacotes/cliente/{package_id}/excluir')
+        self.assertEqual(response.status_code, 302)
+        db.session.expire_all()
+        self.assertIsNone(db.session.get(PacoteCliente, package_id))
+
+        response = self.client.get('/financeiro/', query_string={
+            'data_ini': self.day.isoformat(),
+            'data_fim': self.day.isoformat(),
+        })
+        self.assertNotIn('Mensal', response.get_data(as_text=True))
+
+    def test_client_package_with_usage_is_not_deleted(self):
+        model = Pacote(servico=self.bath, nome='Mensal', quantidade_atendimentos=4, validade_dias=30, valor=180)
+        package = PacoteCliente(
+            pacote=model, tutor=self.tutor, pet=self.pet,
+            data_inicio=self.day, data_fim=date(2030, 2, 1), quantidade_total=4, valor=180,
+        )
+        db.session.add(package)
+        db.session.commit()
+        self.book(pacote_cliente_id=package.id)
+
+        response = self.client.post(f'/pacotes/cliente/{package.id}/excluir')
+        self.assertEqual(response.status_code, 302)
+        db.session.expire_all()
+        self.assertIsNotNone(db.session.get(PacoteCliente, package.id))
+        self.assertEqual(PacoteCliente.query.count(), 1)
+
+    def test_package_model_can_only_be_deleted_without_links(self):
+        unused = Pacote(servico=self.bath, nome='Avulso', quantidade_atendimentos=2, validade_dias=15, valor=95)
+        linked = Pacote(servico=self.bath, nome='Mensal', quantidade_atendimentos=4, validade_dias=30, valor=180)
+        db.session.add_all([unused, linked])
+        db.session.flush()
+        package = PacoteCliente(
+            pacote=linked, tutor=self.tutor, pet=self.pet,
+            data_inicio=self.day, data_fim=date(2030, 2, 1), quantidade_total=4, valor=180,
+        )
+        db.session.add(package)
+        db.session.commit()
+        unused_id = unused.id
+        linked_id = linked.id
+
+        self.assertEqual(self.client.post(f'/pacotes/{unused_id}/excluir').status_code, 302)
+        db.session.expire_all()
+        self.assertIsNone(db.session.get(Pacote, unused_id))
+
+        self.assertEqual(self.client.post(f'/pacotes/{linked_id}/excluir').status_code, 302)
+        db.session.expire_all()
+        self.assertIsNotNone(db.session.get(Pacote, linked_id))
+
     def test_second_pet_shortcut_prefills_tutor_and_date(self):
         item = self.book()
         html = self.client.get(f'/agenda/{item.id}').get_data(as_text=True)

@@ -81,7 +81,14 @@
                 </td>
                 <td><span class="badge text-bg-{{ item.badge_class }} rounded-pill">{{ item.status_operacional }}</span></td>
                 <td class="text-end">
-                  <a class="btn btn-sm btn-light" href="{{ url_for('pacotes.cliente_detalhe', pacote_cliente_id=item.id) }}">Abrir</a>
+                  <div class="d-flex justify-content-end gap-2">
+                    <a class="btn btn-sm btn-light" href="{{ url_for('pacotes.cliente_detalhe', pacote_cliente_id=item.id) }}">Abrir</a>
+                    {% if not item.usos %}
+                    <form method="post" action="{{ url_for('pacotes.cliente_excluir', pacote_cliente_id=item.id) }}" data-confirm="Excluir este pacote? Esta acao remove o valor do financeiro.">
+                      <button class="btn btn-sm btn-outline-danger" aria-label="Excluir pacote"><i class="bi bi-trash"></i></button>
+                    </form>
+                    {% endif %}
+                  </div>
                 </td>
               </tr>
               {% endfor %}
@@ -114,7 +121,14 @@
             </div>
             <div class="d-flex justify-content-between align-items-center mt-3">
               <strong>{{ modelo.valor|brl }}</strong>
-              <a class="btn btn-sm btn-light" href="{{ url_for('pacotes.editar', pacote_id=modelo.id) }}">Editar</a>
+              <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-light" href="{{ url_for('pacotes.editar', pacote_id=modelo.id) }}">Editar</a>
+                {% if not modelo.clientes %}
+                <form method="post" action="{{ url_for('pacotes.excluir', pacote_id=modelo.id) }}" data-confirm="Excluir este modelo de pacote?">
+                  <button class="btn btn-sm btn-outline-danger" aria-label="Excluir modelo de pacote"><i class="bi bi-trash"></i></button>
+                </form>
+                {% endif %}
+              </div>
             </div>
           </div>
         {% endfor %}
