@@ -3,35 +3,54 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#35B7A8">
+  <meta name="theme-color" content="#233D38">
   <title>{% block title %}PetAgenda Pro{% endblock %}</title>
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Nunito+Sans:wght@600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script>try { if (localStorage.getItem('petagenda-hide-values') === 'true') document.documentElement.classList.add('values-hidden'); } catch (error) {}</script>
   {% block head %}{% endblock %}
 </head>
 <body>
   {% if current_user.is_authenticated %}
   <header class="app-header sticky-top">
-    <div class="container-fluid d-flex align-items-center justify-content-between py-2">
+    <div class="container-fluid d-flex align-items-center justify-content-between py-2 gap-3">
       <a href="{{ url_for('dashboard.index') }}" class="brand-link d-flex align-items-center gap-2 text-decoration-none">
-        <div class="brand-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+        <div class="brand-icon"><i class="bi bi-heart-fill"></i></div>
         <div>
           <strong>PetAgenda</strong>
-          <small class="d-block text-muted lh-1">Banho & Tosa</small>
+          <small class="d-block lh-1">Cuidado em cada visita</small>
         </div>
       </a>
+      <nav class="app-module-nav d-none d-md-flex" aria-label="Módulos">
+        <a class="{{ 'active' if (request.endpoint or '').startswith('dashboard') else '' }}" href="{{ url_for('dashboard.index') }}">Início</a>
+        <a class="{{ 'active' if (request.endpoint or '').startswith('agenda') else '' }}" href="{{ url_for('agenda.index') }}">Agenda</a>
+        <a class="{{ 'active' if (request.endpoint or '').startswith('tutores') or (request.endpoint or '').startswith('pets') else '' }}" href="{{ url_for('tutores.index') }}">Tutores e pets</a>
+        <a class="{{ 'active' if (request.endpoint or '').startswith('pacotes') else '' }}" href="{{ url_for('pacotes.index') }}">Pacotes</a>
+        <a class="{{ 'active' if request.endpoint == 'pacotes.renovacoes' else '' }}" href="{{ url_for('pacotes.renovacoes') }}">Renovações</a>
+        <a class="{{ 'active' if (request.endpoint or '').startswith('hotel') else '' }}" href="{{ url_for('hotel.index') }}">Hotelzinho</a>
+      </nav>
+      <div class="d-flex gap-2 align-items-center">
+      <button type="button" class="btn btn-light rounded-pill px-3" id="toggle-values" aria-label="Ocultar valores" aria-pressed="false" title="Ocultar valores"><i class="bi bi-eye-slash me-1" aria-hidden="true"></i><span class="d-none d-sm-inline">Ocultar valores</span></button>
+      <div class="dropdown d-md-none"><button class="btn btn-light" data-bs-toggle="dropdown" aria-label="Abrir módulos"><i class="bi bi-grid"></i></button><ul class="dropdown-menu dropdown-menu-end shadow border-0">
+        <li><a class="dropdown-item" href="{{ url_for('servicos.index') }}">Serviços</a></li><li><a class="dropdown-item" href="{{ url_for('pacotes.index') }}">Pacotes</a></li><li><a class="dropdown-item" href="{{ url_for('pacotes.renovacoes') }}">Renovações</a></li><li><a class="dropdown-item" href="{{ url_for('hotel.index') }}">Hotelzinho</a></li><li><a class="dropdown-item" href="{{ url_for('financeiro.index') }}">Financeiro</a></li><li><a class="dropdown-item" href="{{ url_for('configuracoes.index') }}">Configurações</a></li>
+      </ul></div>
       <div class="dropdown">
         <button class="btn btn-light rounded-pill px-3" data-bs-toggle="dropdown">
           <i class="bi bi-person-circle me-1"></i>{{ current_user.nome.split(' ')[0] }}
         </button>
         <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+          <li><a class="dropdown-item" href="{{ url_for('servicos.index') }}">Serviços</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('financeiro.index') }}">Financeiro</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('hotel.configuracoes') }}">Configurações do Hotelzinho</a></li>
           <li><a class="dropdown-item" href="{{ url_for('configuracoes.index') }}"><i class="bi bi-gear me-2"></i>Configurações</a></li>
           <li><hr class="dropdown-divider"></li>
           <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Sair</a></li>
         </ul>
+      </div>
       </div>
     </div>
   </header>

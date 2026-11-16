@@ -19,6 +19,11 @@ Sistema web/PWA para pet shop de banho e tosa.
 - Financeiro simples por período
 - Botões de WhatsApp com mensagem pronta
 - PWA instalável no celular
+- Ciclos mensais de pacotes com aprovação, recusa e renovação antecipada
+- Hotelzinho com múltiplos pets, diárias, desconto e histórico de entrada/saída
+- Interface adaptada a tablets em orientação vertical e horizontal
+
+Para atualizar uma instalação com dados existentes, siga [UPGRADE.md](UPGRADE.md) antes de iniciar a nova versão.
 
 ## Primeiro acesso
 

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if hospedagem else 'Nova' }} hospedagem · PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="page-heading"><div><a href="{{ url_for('hotel.index') }}" class="subtle text-decoration-none">← Hotelzinho</a><h1 class="page-title mt-2">{{ 'Editar hospedagem' if hospedagem else 'Nova hospedagem' }}</h1></div></div>
+<form method="post" class="card card-soft p-3 p-md-4" id="hotelForm"><div class="row g-3">
+  <div class="col-md-6"><label class="form-label" for="tutor">Tutor *</label><select class="form-select" name="tutor_id" id="tutor" required><option value="">Selecione</option>{% for tutor in tutores %}<option value="{{ tutor.id }}" {% if (request.form.get('tutor_id')|int if request.method == 'POST' else hospedagem.tutor_id if hospedagem else None) == tutor.id %}selected{% endif %}>{{ tutor.nome }}</option>{% endfor %}</select></div>
+  <div class="col-md-6"><label class="form-label">Pets do tutor *</label><div id="hotelPets" class="pet-picker">{% for pet in pets %}<label class="pet-choice"><input type="checkbox" name="pet_ids" value="{{ pet.id }}" {% if pet.id in selecionados %}checked{% endif %}><span>{{ pet.nome }} · {{ pet.porte }}</span></label>{% else %}<span class="subtle">Selecione um tutor para ver os pets.</span>{% endfor %}</div></div>
+  <div class="col-md-3"><label class="form-label" for="entrada">Entrada *</label><input class="form-control" type="date" name="entrada" id="entrada" value="{{ request.form.get('entrada') if request.method == 'POST' else hospedagem.entrada.isoformat() if hospedagem else '' }}" required></div>
+  <div class="col-md-3"><label class="form-label" for="saida">Saída *</label><input class="form-control" type="date" name="saida" id="saida" value="{{ request.form.get('saida') if request.method == 'POST' else hospedagem.saida.isoformat() if hospedagem else '' }}" required></div>
+  <div class="col-md-3"><label class="form-label" for="diaria">Diária por pet (R$) *</label><input class="form-control" type="number" min="0" step="0.01" name="diaria" id="diaria" value="{{ request.form.get('diaria') if request.method == 'POST' else hospedagem.diaria if hospedagem else diaria_padrao }}" required></div>
+  <div class="col-md-3"><label class="form-label" for="desconto">Desconto (%)</label><input class="form-control" type="number" min="0" max="100" step="0.01" name="desconto_percentual" id="desconto" value="{{ request.form.get('desconto_percentual') if request.method == 'POST' else hospedagem.desconto_percentual if hospedagem else 0 }}"></div>
+  <div class="col-12"><div class="hotel-summary" aria-live="polite"><div><span>Pets</span><strong id="resPets">0</strong></div><div><span>Diárias</span><strong id="resDiarias">0</strong></div><div><span>Subtotal</span><strong id="resSubtotal" class="sensitive-value">R$ 0,00</strong></div><div><span>Desconto</span><strong id="resDesconto" class="sensitive-value">R$ 0,00</strong></div><div><span>Total</span><strong id="resTotal" class="sensitive-value">R$ 0,00</strong></div></div></div>
+  <div class="col-12"><label class="form-label" for="observacoes">Observações</label><textarea class="form-control" name="observacoes" id="observacoes" rows="3">{{ request.form.get('observacoes') if request.method == 'POST' else hospedagem.observacoes if hospedagem else '' }}</textarea></div>
+  <div class="col-12 d-flex gap-2"><button class="btn btn-primary">Salvar hospedagem</button><a class="btn btn-light" href="{{ url_for('hotel.index') }}">Cancelar</a></div>
+</div></form>
+{% endblock %}
+{% block scripts %}<script>
+const f = document.getElementById('hotelForm'), pets = document.getElementById('hotelPets');
+const format = new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'});
+function recalc() {
+  const count = pets.querySelectorAll('input:checked').length;
+  const start = document.getElementById('entrada').value, end = document.getElementById('saida').value;
+  const days = start && end ? Math.max(0, Math.round((Date.parse(end)-Date.parse(start))/86400000)) : 0;
+  const cents = Math.round(Number(document.getElementById('diaria').value || 0)*100);
+  const pct = Number(document.getElementById('desconto').value || 0);
+  const subtotal = cents*count*days, discount = Math.round(subtotal*Math.round(pct*100)/10000);
+  document.getElementById('resPets').textContent=count; document.getElementById('resDiarias').textContent=days;
+  document.getElementById('resSubtotal').textContent=format.format(subtotal/100);
+  document.getElementById('resDesconto').textContent=format.format(discount/100);
+  document.getElementById('resTotal').textContent=format.format((subtotal-discount)/100);
+}
+f.addEventListener('input', recalc);
+document.getElementById('tutor').addEventListener('change', async e => {
+  pets.textContent='Carregando pets...';
+  if (!e.target.value) { pets.textContent='Selecione um tutor para ver os pets.'; recalc(); return; }
+  try { const response=await fetch(`{{ url_for('agenda.api_pets') }}?tutor_id=${e.target.value}`); const data=await response.json();
+    pets.replaceChildren(); data.forEach(p => {const label=document.createElement('label'); label.className='pet-choice'; const input=document.createElement('input'); input.type='checkbox'; input.name='pet_ids'; input.value=p.id; const span=document.createElement('span'); span.textContent=`${p.nome} · ${p.porte}`; label.append(input,span); pets.append(label);}); if (!data.length) pets.textContent='Nenhum pet ativo para este tutor.';
+  } catch { pets.textContent='Não foi possível carregar os pets.'; } recalc();
+}); recalc();
+</script>{% endblock %}

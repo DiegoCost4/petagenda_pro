@@ -20,7 +20,7 @@
       <div class="row g-3">
         <div class="col-6 col-md-3"><div class="bg-light rounded-4 p-3"><div class="subtle small">Total</div><div class="fw-bold fs-4">{{ pacote_cliente.quantidade_total }}</div></div></div>
         <div class="col-6 col-md-3"><div class="bg-light rounded-4 p-3"><div class="subtle small">Consumidos</div><div class="fw-bold fs-4">{{ pacote_cliente.consumidos }}</div></div></div>
-        <div class="col-6 col-md-3"><div class="bg-light rounded-4 p-3"><div class="subtle small">Disponíveis</div><div class="fw-bold fs-4 text-success">{{ pacote_cliente.saldo }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="bg-light rounded-4 p-3"><div class="subtle small">Utilizáveis</div><div class="fw-bold fs-4 text-success">{{ pacote_cliente.saldo_utilizavel }}</div></div></div>
         <div class="col-6 col-md-3"><div class="bg-light rounded-4 p-3"><div class="subtle small">Valor</div><div class="fw-bold fs-5">{{ pacote_cliente.valor|brl }}</div></div></div>
       </div>
       <div class="progress pacote-progress pacote-progress-lg mt-3"><div class="progress-bar" style="width: {{ pacote_cliente.progresso_percentual }}%"></div></div>
@@ -55,6 +55,14 @@
 
   <div class="col-lg-5">
     <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold mb-3">Ciclos do contrato</h2>
+      {% for ciclo in ciclos %}
+      <a class="d-block py-2 border-bottom text-decoration-none" href="{{ url_for('pacotes.cliente_detalhe', pacote_cliente_id=ciclo.id) }}">
+        {{ ciclo.data_inicio.strftime('%d/%m/%Y') }} – {{ ciclo.data_fim.strftime('%d/%m/%Y') }} · {{ ciclo.status }} · {{ ciclo.consumidos }}/{{ ciclo.quantidade_total }} usados · {{ ciclo.creditos_expirados_atuais }} expirados
+      </a>
+      {% endfor %}
+    </div>
+    <div class="card card-soft p-3 p-md-4 mb-3">
       <h2 class="h5 fw-bold mb-3">Dados do vínculo</h2>
       <p class="mb-1"><strong>Serviço:</strong> {{ pacote_cliente.pacote.servico.descricao }}</p>
       <p class="mb-1"><strong>Pagamento:</strong> {{ 'Pago' if pacote_cliente.pago else 'Pendente' }}</p>
@@ -65,7 +73,13 @@
     <div class="card card-soft p-3 p-md-4">
       <h2 class="h5 fw-bold mb-3">Ações</h2>
       <div class="d-grid gap-2">
-        <a class="btn btn-primary" href="{{ url_for('agenda.novo') }}"><i class="bi bi-calendar-plus me-1"></i>Novo agendamento</a>
+        {% if pacote_cliente.saldo_utilizavel > 0 %}<a class="btn btn-primary" href="{{ url_for('agenda.novo', pacote_cliente_id=pacote_cliente.id) }}"><i class="bi bi-calendar-plus me-1"></i>Agendar com este pacote</a>{% endif %}
+        {% if pacote_cliente.status == 'Ativo' and pacote_cliente.data_inicio <= hoje <= pacote_cliente.data_fim %}
+        <form method="post" action="{{ url_for('pacotes.renovar', pacote_cliente_id=pacote_cliente.id) }}" data-confirm="Renovar antecipadamente? Saldo atual: {{ pacote_cliente.saldo }} crédito(s), que expirarão. Novo ciclo: {{ pacote_cliente.quantidade_total }} crédito(s), de {{ hoje.strftime('%d/%m/%Y') }} a {{ novo_fim.strftime('%d/%m/%Y') }}.">
+          <input type="hidden" name="decisao" value="Aprovada"><input type="hidden" name="antecipada" value="1">
+          <button class="btn btn-outline-primary w-100">Renovar pacote antecipadamente</button>
+        </form>
+        {% endif %}
         <a class="btn btn-light" href="{{ url_for('pets.detalhe', pet_id=pacote_cliente.pet_id) }}"><i class="bi bi-heart me-1"></i>Abrir pet</a>
         {% if pacote_cliente.status == 'Ativo' %}
         <form method="post" action="{{ url_for('pacotes.cliente_encerrar', pacote_cliente_id=pacote_cliente.id) }}" data-confirm="Encerrar este pacote?">
@@ -73,8 +87,8 @@
         </form>
         {% endif %}
         {% if not usos %}
-        <form method="post" action="{{ url_for('pacotes.cliente_excluir', pacote_cliente_id=pacote_cliente.id) }}" data-confirm="Excluir este pacote? Esta acao remove o valor do financeiro.">
-          <button class="btn btn-outline-danger w-100"><i class="bi bi-trash me-1"></i>Excluir pacote</button>
+        <form method="post" action="{{ url_for('pacotes.cliente_excluir', pacote_cliente_id=pacote_cliente.id) }}" data-confirm="Cancelar este pacote e preservar seu histórico?">
+          <button class="btn btn-outline-danger w-100"><i class="bi bi-x-circle me-1"></i>Cancelar pacote</button>
         </form>
         {% else %}
         <div class="small subtle">Pacotes com consumo registrado nao podem ser excluidos.</div>

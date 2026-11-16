@@ -1,5 +1,7 @@
 # Manual de Uso - PetAgenda Pro
 
+> Para atualizar uma instalação existente, leia [UPGRADE.md](UPGRADE.md) e faça um backup validado antes de iniciar a versão nova.
+
 ## 1. Objetivo do sistema
 
 O PetAgenda Pro foi criado para controlar a rotina de uma pet shop de banho e tosa pelo celular. Ele permite cadastrar tutores, pets, serviços, agendamentos, pagamentos e acompanhar o status de cada atendimento.
@@ -192,9 +194,12 @@ A tela mostra:
 - Valor recebido
 - Valor pendente
 - Lista de atendimentos
+- Lista de hospedagens e valores do hotelzinho
 - Recebimentos por forma de pagamento
 
 Use os filtros de data para ver o dia, semana ou mês.
+
+O botão **Ocultar valores** no cabeçalho esconde os valores monetários exibidos na tela. Use **Mostrar valores** para exibi-los novamente; a escolha fica salva neste navegador.
 
 ## 12. Configurar horários de funcionamento
 
@@ -274,3 +279,27 @@ instance/petagenda.db
 Esse arquivo contém os dados do sistema.
 
 Se colocar online com PostgreSQL, configure backup automático no servidor ou plataforma.
+
+## 17. Pacotes mensais e renovações
+
+Em **Pacotes**, vincule um pacote ao pet. A primeira vigência é mensal: começa na data escolhida e termina no dia anterior ao próximo aniversário do contrato. Os créditos não se acumulam entre ciclos.
+
+Quando um ciclo vence, ele aparece automaticamente em **Renovações > Pendentes**. Confira o tutor, pet, consumo e valor. Use **Aprovar** para criar outro ciclo ou **Não renovar** para encerrar sem liberar créditos. Ambas as decisões pedem confirmação. As abas de histórico mostram quem decidiu e quando.
+
+Na página do pacote do pet, **Renovar pacote antecipadamente** encerra o ciclo atual e cria outro começando no dia da confirmação. A mensagem informa os créditos que expiram e as novas datas. Agendamentos futuros já vinculados ao ciclo antigo precisam ser resolvidos antes dessa ação.
+
+Use **Agendar com este pacote** para abrir a agenda com tutor, pet, serviço e pacote já selecionados. O crédito é reservado quando o agendamento é salvo. Cancelar ou marcar falta libera o saldo apenas enquanto o ciclo ainda permite uso.
+
+## 18. Hotelzinho
+
+Em **Hotelzinho > Configurar diária**, informe o valor padrão por pet. O valor é copiado para cada nova hospedagem e alterações futuras não mudam os registros anteriores.
+
+Em **Nova hospedagem**, selecione um tutor e um ou mais pets dele, entrada e saída, diária e desconto. A saída deve ser posterior à entrada. O sistema usa a diferença de datas como quantidade de pernoites e calcula subtotal, desconto e total. Ele impede períodos sobrepostos para o mesmo pet.
+
+Na listagem, busque por tutor ou pet e filtre por período. Abra uma hospedagem para editar antes do check-in, cancelar, registrar entrada ou registrar saída. O histórico da hospedagem guarda essas ações. As páginas do tutor e do pet também mostram seus registros de hotelzinho.
+
+Na hospedagem, registre a data e a forma de pagamento para incluir o total como recebido no financeiro. Antes disso, o valor aparece como previsto pela data de entrada. É possível estornar um pagamento registrado; para cancelar uma hospedagem paga, estorne primeiro.
+
+## 19. Uso em tablet
+
+Os módulos principais ficam no topo em tablets e computadores. Em celulares, use o menu de módulos no cabeçalho e a barra inferior para as ações mais frequentes. A interface funciona nas orientações vertical e horizontal.

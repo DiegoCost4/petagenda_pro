@@ -18,7 +18,7 @@
         <select class="form-select" name="servico_id" required>
           <option value="">Selecione</option>
           {% for servico in servicos %}
-          <option value="{{ servico.id }}" {% if pacote and pacote.servico_id == servico.id %}selected{% endif %}>{{ servico.descricao }} - {{ servico.valor|brl }}</option>
+          <option value="{{ servico.id }}" {% if pacote and pacote.servico_id == servico.id %}selected{% endif %} data-price-label>{{ servico.descricao }} - {{ servico.valor|brl_plain }}</option>
           {% endfor %}
         </select>
       </div>
@@ -31,8 +31,9 @@
         <input class="form-control" type="number" min="1" step="1" name="quantidade_atendimentos" value="{{ pacote.quantidade_atendimentos if pacote else 4 }}" required>
       </div>
       <div class="col-md-4">
-        <label class="form-label">Validade em dias *</label>
+        <label class="form-label">Validade legada em dias *</label>
         <input class="form-control" type="number" min="1" step="1" name="validade_dias" value="{{ pacote.validade_dias if pacote else 30 }}" required>
+        <div class="form-text">Novos vínculos recorrentes usam ciclos mensais; este campo é mantido para compatibilidade.</div>
       </div>
       {% if pacote %}
       <div class="col-md-4 d-flex align-items-end">
@@ -53,8 +54,8 @@
     </div>
   </form>
   {% if pacote and not pacote.clientes %}
-  <form method="post" action="{{ url_for('pacotes.excluir', pacote_id=pacote.id) }}" class="mt-3" data-confirm="Excluir este modelo de pacote?">
-    <button class="btn btn-outline-danger"><i class="bi bi-trash me-1"></i>Excluir modelo</button>
+  <form method="post" action="{{ url_for('pacotes.excluir', pacote_id=pacote.id) }}" class="mt-3" data-confirm="Inativar este modelo de pacote?">
+    <button class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Inativar modelo</button>
   </form>
   {% endif %}
 </div>

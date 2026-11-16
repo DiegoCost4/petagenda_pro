@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Hospedagem #{{ item.id }} · PetAgenda Pro{% endblock %}
+{% block content %}
+<div class="page-heading"><div><a href="{{ url_for('hotel.index') }}" class="subtle text-decoration-none">← Hotelzinho</a><h1 class="page-title mt-2">Hospedagem #{{ item.id }}</h1><p class="subtle">{{ item.tutor.nome }} · {{ item.pets|map(attribute='nome')|join(', ') }}</p></div><span class="badge text-bg-primary fs-6 p-3">{{ item.status }}</span></div>
+<div class="row g-3"><div class="col-lg-7"><div class="card card-soft p-4"><h2 class="h5">Período e valores</h2><div class="cycle-facts my-3"><span>Entrada<strong>{{ item.entrada.strftime('%d/%m/%Y') }}</strong></span><span>Saída<strong>{{ item.saida.strftime('%d/%m/%Y') }}</strong></span><span>Diárias<strong>{{ item.diarias }}</strong></span><span>Pets<strong>{{ item.pets|length }}</strong></span></div><p>Diária por pet: {{ item.diaria|brl }}<br>Subtotal: {{ item.subtotal|brl }}<br>Desconto: {{ item.desconto_percentual }}% ({{ item.desconto_valor|brl }})</p><h3 class="h4">Total: {{ item.total|brl }}</h3><p class="subtle">{{ item.observacoes or 'Sem observações.' }}</p>{% if item.checkin_em %}<p>Check-in: {{ item.checkin_em.strftime('%d/%m/%Y %H:%M') }} UTC</p>{% endif %}{% if item.checkout_em %}<p>Check-out: {{ item.checkout_em.strftime('%d/%m/%Y %H:%M') }} UTC</p>{% endif %}</div></div>
+<div class="col-lg-5"><div class="card card-soft p-4 mb-3"><h2 class="h5">Ações</h2><div class="d-grid gap-2">{% if item.status == 'Agendado' %}{% if not item.pago %}<a class="btn btn-light" href="{{ url_for('hotel.editar', hospedagem_id=item.id) }}">Editar hospedagem</a>{% endif %}<form method="post" action="{{ url_for('hotel.status', hospedagem_id=item.id) }}" data-confirm="Confirmar a entrada dos pets?"><input type="hidden" name="acao" value="checkin"><button class="btn btn-primary w-100">Registrar check-in</button></form><form method="post" action="{{ url_for('hotel.status', hospedagem_id=item.id) }}" data-confirm="Cancelar esta hospedagem?"><input type="hidden" name="acao" value="cancelar"><button class="btn btn-outline-danger w-100">Cancelar</button></form>{% elif item.status == 'Hospedado' %}<form method="post" action="{{ url_for('hotel.status', hospedagem_id=item.id) }}" data-confirm="Confirmar a saída dos pets?"><input type="hidden" name="acao" value="checkout"><button class="btn btn-primary w-100">Registrar check-out</button></form>{% endif %}</div></div><div class="card card-soft p-4"><h2 class="h5">Histórico</h2>{% for evento in eventos %}<div class="timeline-item">{{ evento.acao }} · {{ evento.ocorrido_em.strftime('%d/%m/%Y %H:%M') }} UTC<br><span class="subtle">{{ evento.usuario.nome }}</span>{% if evento.detalhes %}<details class="small mt-2"><summary>Ver alterações</summary><code class="d-block text-wrap mt-1">{{ evento.detalhes }}</code></details>{% endif %}</div>{% endfor %}</div></div></div>
+<div class="card card-soft p-4 mt-3">
+  <h2 class="h5">Pagamento</h2>
+  {% if item.pago %}
+    <p class="mb-3">Pago em {{ item.data_pagamento.strftime('%d/%m/%Y') }} por {{ item.forma_pagamento }}: {{ item.total|brl }}</p>
+    <form method="post" action="{{ url_for('hotel.estornar', hospedagem_id=item.id) }}" data-confirm="Estornar o pagamento desta hospedagem?">
+      <button class="btn btn-outline-danger">Estornar pagamento</button>
+    </form>
+  {% elif item.status != 'Cancelado' %}
+    <p class="subtle">Pendente: {{ item.total|brl }}</p>
+    <form method="post" action="{{ url_for('hotel.pagar', hospedagem_id=item.id) }}" class="row g-2 align-items-end">
+      <div class="col-sm-4"><label class="form-label" for="data_pagamento">Data</label><input class="form-control" id="data_pagamento" type="date" name="data_pagamento" value="{{ hoje.isoformat() }}" required></div>
+      <div class="col-sm-4"><label class="form-label" for="forma_pagamento">Forma de pagamento</label><select class="form-select" id="forma_pagamento" name="forma_pagamento" required>{% for forma in formas %}<option value="{{ forma }}">{{ forma }}</option>{% endfor %}</select></div>
+      <div class="col-sm-4"><button class="btn btn-primary w-100">Registrar pagamento</button></div>
+    </form>
+  {% else %}<p class="subtle mb-0">Hospedagem cancelada.</p>{% endif %}
+</div>
+{% endblock %}

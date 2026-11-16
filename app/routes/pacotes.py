@@ -1,10 +1,12 @@
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_required
+from flask_login import login_required, current_user
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from app.extensions import db
-from app.models import Pacote, PacoteCliente, Tutor, Pet, Servico, UsoPacote, Agendamento
+from app.models import Pacote, PacoteCliente, Tutor, Pet, Servico, UsoPacote, Agendamento, RenovacaoPacote
+from app.package_cycles import decidir, pendencias, proximo_aniversario
 from app.utils import FORMAS_PAGAMENTO, STATUS_PACOTE_CLIENTE
 
 bp = Blueprint("pacotes", __name__, url_prefix="/pacotes")
@@ -24,9 +26,10 @@ def parse_decimal(value, default=Decimal("0")):
     if not value:
         return default
     try:
-        return Decimal(value)
+        amount = Decimal(value)
+        return amount if amount.is_finite() else Decimal("-1")
     except InvalidOperation:
-        return default
+        return Decimal("-1")
 
 
 def render_pacote_form(pacote=None):
@@ -127,6 +130,7 @@ def novo():
 def editar(pacote_id):
     pacote = db.get_or_404(Pacote, pacote_id)
     if request.method == "POST":
+        antigo_servico_id = pacote.servico_id
         pacote.servico_id = request.form.get("servico_id", type=int)
         pacote.nome = request.form.get("nome", "").strip()
         pacote.quantidade_atendimentos = request.form.get("quantidade_atendimentos", type=int)
@@ -134,6 +138,10 @@ def editar(pacote_id):
         pacote.valor = parse_decimal(request.form.get("valor"))
         pacote.observacoes = request.form.get("observacoes", "").strip() or None
         pacote.ativo = bool(request.form.get("ativo"))
+        if pacote.clientes and pacote.servico_id != antigo_servico_id:
+            db.session.rollback()
+            flash("O serviço de um modelo com vínculos históricos não pode ser alterado.", "warning")
+            return render_pacote_form(pacote)
         if (
             not pacote.servico_id
             or not pacote.nome
@@ -164,13 +172,9 @@ def inativar(pacote_id):
 @login_required
 def excluir(pacote_id):
     pacote = db.get_or_404(Pacote, pacote_id)
-    if pacote.clientes:
-        flash("Este modelo ja tem pacotes vinculados e nao pode ser excluido.", "warning")
-        return redirect(request.referrer or url_for("pacotes.index"))
-
-    db.session.delete(pacote)
+    pacote.ativo = False
     db.session.commit()
-    flash("Modelo de pacote excluido.", "info")
+    flash("Modelo de pacote inativado; histórico preservado.", "info")
     return redirect(url_for("pacotes.index"))
 
 
@@ -191,6 +195,9 @@ def cliente_novo():
             return render_template("pacotes/cliente_form.html", **cliente_form_context(pacote_cliente))
 
         pacote_cliente = build_cliente_from_request(PacoteCliente(), pacote)
+        if pacote_cliente.valor < 0 or pacote_cliente.quantidade_total <= 0:
+            flash("Informe quantidade e valor válidos.", "warning")
+            return render_template("pacotes/cliente_form.html", **cliente_form_context(pacote_cliente))
         if pacote_cliente.data_fim < pacote_cliente.data_inicio:
             flash("A data final precisa ser maior ou igual à data inicial.", "warning")
             return render_template("pacotes/cliente_form.html", **cliente_form_context(pacote_cliente))
@@ -212,7 +219,46 @@ def cliente_detalhe(pacote_cliente_id):
         .order_by(Agendamento.data.desc(), Agendamento.hora_inicio.desc())
         .all()
     )
-    return render_template("pacotes/cliente_detalhe.html", pacote_cliente=pacote_cliente, usos=usos)
+    root_id = pacote_cliente.contrato_id or pacote_cliente.id
+    ciclos = PacoteCliente.query.filter(or_(PacoteCliente.id == root_id, PacoteCliente.contrato_id == root_id)).order_by(PacoteCliente.data_inicio.desc(), PacoteCliente.id.desc()).all()
+    hoje = date.today()
+    return render_template("pacotes/cliente_detalhe.html", pacote_cliente=pacote_cliente, usos=usos, ciclos=ciclos, hoje=hoje, novo_fim=proximo_aniversario(hoje) - timedelta(days=1))
+
+
+@bp.route("/renovacoes")
+@login_required
+def renovacoes():
+    q = request.args.get("q", "").strip().lower()
+    filtro = request.args.get("status", "Pendentes")
+    inicio = parse_date(request.args.get("inicio"))
+    fim = parse_date(request.args.get("fim"))
+    pendentes = pendencias()
+    decisoes = RenovacaoPacote.query.order_by(RenovacaoPacote.decidida_em.desc()).limit(300).all()
+    items = pendentes if filtro == "Pendentes" else [d for d in decisoes if filtro == "Histórico" or (filtro == "Renovados" and d.decisao == "Aprovada") or (filtro == "Não renovados" and d.decisao == "Recusada")]
+    if q:
+        items = [item for item in items if q in " ".join([
+            (item if filtro == "Pendentes" else item.ciclo_anterior).tutor.nome,
+            (item if filtro == "Pendentes" else item.ciclo_anterior).pet.nome,
+            (item if filtro == "Pendentes" else item.ciclo_anterior).pacote.nome,
+        ]).lower()]
+    if inicio or fim:
+        items = [item for item in items if (not inicio or (item if filtro == "Pendentes" else item.ciclo_anterior).data_fim >= inicio) and (not fim or (item if filtro == "Pendentes" else item.ciclo_anterior).data_fim <= fim)]
+    return render_template("pacotes/renovacoes.html", items=items, filtro=filtro, q=q, inicio=inicio, fim=fim, total_pendentes=len(pendentes))
+
+
+@bp.route("/cliente/<int:pacote_cliente_id>/renovar", methods=["POST"])
+@login_required
+def renovar(pacote_cliente_id):
+    decisao = request.form.get("decisao")
+    antecipada = request.form.get("antecipada") == "1"
+    try:
+        novo = decidir(pacote_cliente_id, current_user.id, decisao, antecipada)
+        flash("Novo ciclo criado com sucesso." if novo else "Não renovação registrada.", "success")
+        return redirect(url_for("pacotes.cliente_detalhe", pacote_cliente_id=novo.id if novo else pacote_cliente_id))
+    except (ValueError, IntegrityError) as exc:
+        db.session.rollback()
+        flash(str(exc) if isinstance(exc, ValueError) else "Este ciclo já foi decidido por outro usuário.", "warning")
+        return redirect(request.referrer or url_for("pacotes.renovacoes"))
 
 
 @bp.route("/cliente/<int:pacote_cliente_id>/editar", methods=["GET", "POST"])
@@ -220,6 +266,9 @@ def cliente_detalhe(pacote_cliente_id):
 def cliente_editar(pacote_cliente_id):
     pacote_cliente = db.get_or_404(PacoteCliente, pacote_cliente_id)
     if request.method == "POST":
+        if pacote_cliente.proximo_ciclo or pacote_cliente.status == "Encerrado":
+            flash("Ciclos históricos encerrados não podem ser editados.", "warning")
+            return redirect(url_for("pacotes.cliente_detalhe", pacote_cliente_id=pacote_cliente.id))
         pacote, tutor, pet, error = validate_cliente_form(allow_inactive_id=pacote_cliente.pacote_id)
         if error:
             flash(error, "warning")
@@ -227,23 +276,35 @@ def cliente_editar(pacote_cliente_id):
             return render_template("pacotes/cliente_form.html", **cliente_form_context(pacote_cliente))
 
         tem_usos = bool(pacote_cliente.usos)
+        datas_originais = (pacote_cliente.data_inicio, pacote_cliente.data_fim, pacote_cliente.quantidade_total)
         identidade_alterada = (
             pacote_cliente.pacote_id != pacote.id
             or pacote_cliente.tutor_id != tutor.id
             or pacote_cliente.pet_id != pet.id
         )
-        if tem_usos and identidade_alterada:
+        if (tem_usos or pacote_cliente.ciclo_anterior_id) and identidade_alterada:
             flash("Pacotes com uso já registrado não podem trocar modelo, tutor ou pet.", "warning")
             return render_template("pacotes/cliente_form.html", **cliente_form_context(pacote_cliente))
 
         consumidos = pacote_cliente.usos_consumidos()
+        old_status = pacote_cliente.status
         atualizado = build_cliente_from_request(pacote_cliente, pacote)
+        if (tem_usos or pacote_cliente.ciclo_anterior_id or datas_originais[1] < date.today()) and (atualizado.data_inicio, atualizado.data_fim, atualizado.quantidade_total) != datas_originais:
+            flash("Datas e créditos de ciclos com histórico ou vencidos não podem ser alterados.", "warning")
+            db.session.rollback()
+            return render_template("pacotes/cliente_form.html", **cliente_form_context(pacote_cliente))
+        if atualizado.valor < 0 or atualizado.quantidade_total <= 0:
+            flash("Informe quantidade e valor válidos.", "warning")
+            return render_template("pacotes/cliente_form.html", **cliente_form_context(pacote_cliente))
         if atualizado.data_fim < atualizado.data_inicio:
             flash("A data final precisa ser maior ou igual à data inicial.", "warning")
             return render_template("pacotes/cliente_form.html", **cliente_form_context(pacote_cliente))
         if atualizado.quantidade_total < consumidos:
             flash("A quantidade não pode ficar menor que os usos já consumidos.", "warning")
             return render_template("pacotes/cliente_form.html", **cliente_form_context(pacote_cliente))
+        if old_status == "Ativo" and atualizado.status != "Ativo":
+            atualizado.encerrado_em = date.today()
+            atualizado.creditos_expirados = atualizado.saldo
         db.session.commit()
         flash("Pacote do cliente atualizado.", "success")
         return redirect(url_for("pacotes.cliente_detalhe", pacote_cliente_id=pacote_cliente.id))
@@ -255,6 +316,8 @@ def cliente_editar(pacote_cliente_id):
 def cliente_encerrar(pacote_cliente_id):
     pacote_cliente = db.get_or_404(PacoteCliente, pacote_cliente_id)
     pacote_cliente.status = "Encerrado"
+    pacote_cliente.encerrado_em = date.today()
+    pacote_cliente.creditos_expirados = pacote_cliente.saldo
     db.session.commit()
     flash("Pacote encerrado.", "info")
     return redirect(request.referrer or url_for("pacotes.index"))
@@ -264,13 +327,15 @@ def cliente_encerrar(pacote_cliente_id):
 @login_required
 def cliente_excluir(pacote_cliente_id):
     pacote_cliente = db.get_or_404(PacoteCliente, pacote_cliente_id)
-    if pacote_cliente.usos:
+    if pacote_cliente.usos or pacote_cliente.proximo_ciclo or pacote_cliente.ciclo_anterior_id or RenovacaoPacote.query.filter_by(ciclo_anterior_id=pacote_cliente.id).first():
         flash("Pacotes com consumo na agenda nao podem ser excluidos. Remova o vinculo dos agendamentos antes.", "warning")
         return redirect(request.referrer or url_for("pacotes.cliente_detalhe", pacote_cliente_id=pacote_cliente.id))
 
-    db.session.delete(pacote_cliente)
+    pacote_cliente.status = "Cancelado"
+    pacote_cliente.encerrado_em = date.today()
+    pacote_cliente.creditos_expirados = pacote_cliente.saldo
     db.session.commit()
-    flash("Pacote excluido e removido do financeiro.", "info")
+    flash("Pacote cancelado; histórico e financeiro preservados.", "info")
     return redirect(url_for("pacotes.index"))
 
 
@@ -291,13 +356,15 @@ def build_cliente_from_request(pacote_cliente, pacote=None):
     pacote = pacote or db.session.get(Pacote, request.form.get("pacote_id", type=int))
     data_inicio = parse_date(request.form.get("data_inicio"), date.today())
     data_fim = parse_date(request.form.get("data_fim"))
-    if not data_fim and pacote:
-        data_fim = data_inicio + timedelta(days=pacote.validade_dias)
+    if not pacote_cliente.id:
+        data_fim = proximo_aniversario(data_inicio) - timedelta(days=1)
 
     pacote_cliente.pacote_id = request.form.get("pacote_id", type=int)
     pacote_cliente.tutor_id = request.form.get("tutor_id", type=int)
     pacote_cliente.pet_id = request.form.get("pet_id", type=int)
     pacote_cliente.data_inicio = data_inicio
+    if not pacote_cliente.id:
+        pacote_cliente.dia_ancora = data_inicio.day
     pacote_cliente.data_fim = data_fim or data_inicio
     pacote_cliente.quantidade_total = (
         request.form.get("quantidade_total", type=int)

@@ -4,7 +4,7 @@
 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
   <div>
     <h1 class="page-title h3 mb-1">Financeiro</h1>
-    <p class="subtle mb-0">Recebimentos e pendências dos atendimentos e pacotes.</p>
+    <p class="subtle mb-0">Recebimentos e pendências dos atendimentos, pacotes e hospedagens.</p>
   </div>
 </div>
 
@@ -68,7 +68,7 @@
       {% endif %}
     </div>
 
-    <div class="card card-soft p-3 p-md-4">
+    <div class="card card-soft p-3 p-md-4 mb-3">
       <h2 class="h5 fw-bold mb-3">Pacotes vendidos no período</h2>
       {% if pacotes_periodo %}
       <div class="table-responsive table-card">
@@ -94,6 +94,24 @@
       <div class="text-center py-5 subtle">Nenhum pacote vendido no período.</div>
       {% endif %}
     </div>
+
+    <div class="card card-soft p-3 p-md-4">
+      <h2 class="h5 fw-bold mb-3">Hospedagens do período</h2>
+      {% if hospedagens_periodo %}
+      <div class="table-responsive table-card"><div class="grid-scroll">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light"><tr><th>Entrada</th><th>Pets/Tutor</th><th>Valor</th><th>Pagamento</th><th></th></tr></thead>
+          <tbody>{% for item in hospedagens_periodo %}<tr>
+            <td>{{ item.entrada.strftime('%d/%m/%Y') }}</td>
+            <td><strong>{{ item.pets|map(attribute='nome')|join(', ') }}</strong><br><small class="subtle">{{ item.tutor.nome }}</small></td>
+            <td>{{ item.total|brl }}</td>
+            <td><span class="badge text-bg-{{ 'success' if item.pago else 'warning' }} rounded-pill">{{ 'Pago' if item.pago else 'Pendente' }}</span></td>
+            <td class="text-end"><a class="btn btn-sm btn-light" href="{{ url_for('hotel.detalhe', hospedagem_id=item.id) }}">Abrir</a></td>
+          </tr>{% endfor %}</tbody>
+        </table>
+      </div></div>
+      {% else %}<div class="text-center py-5 subtle">Nenhuma hospedagem no período.</div>{% endif %}
+    </div>
   </div>
   <div class="col-lg-4">
     <div class="card card-soft p-3 p-md-4 mb-3">
@@ -115,9 +133,13 @@
         <div class="d-flex justify-content-between"><span>Atendimentos</span><strong>{{ total_previsto_atendimentos|brl }}</strong></div>
         <div class="subtle small">Recebido: {{ total_recebido_atendimentos|brl }}</div>
       </div>
-      <div class="bg-light rounded-4 p-3">
+      <div class="bg-light rounded-4 p-3 mb-2">
         <div class="d-flex justify-content-between"><span>Pacotes</span><strong>{{ total_previsto_pacotes|brl }}</strong></div>
         <div class="subtle small">Recebido: {{ total_recebido_pacotes|brl }}</div>
+      </div>
+      <div class="bg-light rounded-4 p-3">
+        <div class="d-flex justify-content-between"><span>Hotelzinho</span><strong>{{ total_previsto_hotel|brl }}</strong></div>
+        <div class="subtle small">Recebido: {{ total_recebido_hotel|brl }}</div>
       </div>
     </div>
   </div>

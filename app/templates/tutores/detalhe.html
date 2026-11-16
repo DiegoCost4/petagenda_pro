@@ -31,6 +31,7 @@
     </div>
   </div>
   <div class="col-lg-7">
+    <div class="card card-soft p-3 p-md-4 mb-3"><h2 class="h5 fw-bold mb-3">Hospedagens</h2>{% for item in hospedagens %}<a class="d-block py-2 border-bottom text-decoration-none" href="{{ url_for('hotel.detalhe', hospedagem_id=item.id) }}">{{ item.entrada.strftime('%d/%m/%Y') }} – {{ item.saida.strftime('%d/%m/%Y') }} · {{ item.pets|map(attribute='nome')|join(', ') }} · {{ item.status }}</a>{% else %}<p class="subtle mb-0">Nenhuma hospedagem registrada.</p>{% endfor %}</div>
     <div class="card card-soft p-3 p-md-4 mb-3">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="h5 fw-bold mb-0">Pets</h2>
@@ -82,7 +83,7 @@
       {% for item in tutor.agendamentos|sort(attribute='data', reverse=True) %}
         <div class="timeline-item">
           <div class="fw-bold">{{ item.data.strftime('%d/%m/%Y') }} às {{ item.hora_inicio }} - {{ item.pet.nome }}</div>
-          <div class="subtle small">{{ item.servicos_descricao }} • {{ item.valor_resumo }} • {{ item.status }}</div>
+          <div class="subtle small">{{ item.servicos_descricao }} • <span class="sensitive-value">{{ item.valor_resumo }}</span> • {{ item.status }}</div>
         </div>
       {% else %}
         <p class="subtle">Nenhum agendamento ainda.</p>

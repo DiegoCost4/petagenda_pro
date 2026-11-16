@@ -3,10 +3,17 @@
 {% block content %}
 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
   <div>
-    <h1 class="page-title h3 mb-1">Resumo do dia</h1>
+    <div class="eyebrow">VISÃO GERAL</div><h1 class="page-title h2 mb-1">Seu dia no pet shop</h1>
     <p class="subtle mb-0">{{ hoje.strftime('%d/%m/%Y') }}</p>
   </div>
   <a class="btn btn-primary" href="{{ url_for('agenda.novo') }}"><i class="bi bi-plus-lg me-1"></i>Novo agendamento</a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3"><a class="text-decoration-none text-dark" href="{{ url_for('pacotes.renovacoes') }}"><div class="stat-card"><div class="stat-label">Renovações pendentes</div><div class="stat-value">{{ renovacoes_pendentes }}</div></div></a></div>
+  <div class="col-6 col-lg-3"><a class="text-decoration-none text-dark" href="{{ url_for('pacotes.index') }}"><div class="stat-card"><div class="stat-label">Pacotes vencendo em 7 dias</div><div class="stat-value">{{ pacotes_vencendo }}</div></div></a></div>
+  <div class="col-6 col-lg-3"><a class="text-decoration-none text-dark" href="{{ url_for('hotel.index') }}"><div class="stat-card"><div class="stat-label">Pets hospedados</div><div class="stat-value">{{ pets_hospedados }}</div></div></a></div>
+  <div class="col-6 col-lg-3"><a class="text-decoration-none text-dark" href="{{ url_for('hotel.index') }}"><div class="stat-card"><div class="stat-label">Entradas / saídas hoje</div><div class="stat-value">{{ entradas_hoje }} / {{ saidas_hoje }}</div></div></a></div>
 </div>
 
 <div class="row g-3 mb-4">
@@ -55,7 +62,7 @@
               <div class="appointment-row d-flex align-items-center justify-content-between bg-light rounded-4 p-3">
                 <div>
                   <div class="fw-bold">{{ item.hora_inicio }} - {{ item.pet.nome }}</div>
-                  <div class="subtle small">{{ item.tutor.nome }} • {{ item.servicos_descricao }} • {{ item.valor_resumo }}</div>
+                  <div class="subtle small">{{ item.tutor.nome }} • {{ item.servicos_descricao }} • <span class="sensitive-value">{{ item.valor_resumo }}</span></div>
                 </div>
                 <span class="badge text-bg-{{ item.badge_class }} rounded-pill">{{ item.status }}</span>
               </div>
@@ -91,6 +98,8 @@
         <a href="{{ url_for('pets.novo') }}" class="btn btn-light text-start"><i class="bi bi-heart me-2"></i>Cadastrar pet</a>
         <a href="{{ url_for('servicos.index') }}" class="btn btn-light text-start"><i class="bi bi-scissors me-2"></i>Serviços e preços</a>
         <a href="{{ url_for('pacotes.index') }}" class="btn btn-light text-start"><i class="bi bi-ticket-perforated me-2"></i>Pacotes e saldos</a>
+        <a href="{{ url_for('pacotes.renovacoes') }}" class="btn btn-light text-start"><i class="bi bi-arrow-repeat me-2"></i>Renovações</a>
+        <a href="{{ url_for('hotel.index') }}" class="btn btn-light text-start"><i class="bi bi-house-heart me-2"></i>Hotelzinho</a>
         <a href="{{ url_for('financeiro.index') }}" class="btn btn-light text-start"><i class="bi bi-cash-coin me-2"></i>Financeiro</a>
       </div>
     </div>

@@ -42,7 +42,8 @@
             data-validade="{{ pacote.validade_dias }}"
             data-valor="{{ pacote.valor }}"
             {% if pacote_cliente and pacote_cliente.pacote_id == pacote.id %}selected{% endif %}
-          >{{ pacote.nome }} - {{ pacote.servico.nome }} - {{ pacote.valor|brl }}</option>
+            data-price-label
+          >{{ pacote.nome }} - {{ pacote.servico.nome }} - {{ pacote.valor|brl_plain }}</option>
           {% endfor %}
         </select>
       </div>
@@ -52,7 +53,7 @@
       </div>
       <div class="col-md-3">
         <label class="form-label">Data final *</label>
-        <input class="form-control" type="date" name="data_fim" id="dataFim" value="{{ pacote_cliente.data_fim.strftime('%Y-%m-%d') if pacote_cliente and pacote_cliente.data_fim else '' }}" required>
+        <input class="form-control" type="date" name="data_fim" id="dataFim" value="{{ pacote_cliente.data_fim.strftime('%Y-%m-%d') if pacote_cliente and pacote_cliente.data_fim else '' }}" {% if not pacote_cliente.id %}readonly{% endif %} required>
       </div>
       <div class="col-md-3">
         <label class="form-label">Créditos *</label>
@@ -114,11 +115,12 @@ const valorPacote = document.getElementById('valorPacote');
 const selectedPetId = {{ pacote_cliente.pet_id if pacote_cliente and pacote_cliente.pet_id else 'null' }};
 const editing = {{ 'true' if pacote_cliente and pacote_cliente.id else 'false' }};
 
-function addDays(dateValue, days) {
-  if (!dateValue || !days) return '';
-  const date = new Date(`${dateValue}T00:00:00`);
-  date.setDate(date.getDate() + Number(days));
-  return date.toISOString().slice(0, 10);
+function fimMensal(dateValue) {
+  if (!dateValue) return '';
+  const [year, month, day] = dateValue.split('-').map(Number);
+  const anniversary = new Date(Date.UTC(year, month, Math.min(day, new Date(Date.UTC(year, month + 1, 0)).getUTCDate())));
+  anniversary.setUTCDate(anniversary.getUTCDate() - 1);
+  return anniversary.toISOString().slice(0, 10);
 }
 
 async function carregarPets() {
@@ -145,7 +147,7 @@ function aplicarPacoteDefaults(force = false) {
   if (!opt || !opt.value) return;
   if (force || !editing || !quantidadeTotal.value) quantidadeTotal.value = opt.dataset.quantidade || '';
   if (force || !editing || !valorPacote.value) valorPacote.value = opt.dataset.valor || '';
-  if ((force || !editing || !dataFim.value) && dataInicio.value) dataFim.value = addDays(dataInicio.value, opt.dataset.validade);
+  if (!editing && dataInicio.value) dataFim.value = fimMensal(dataInicio.value);
 }
 
 tutorSelect.addEventListener('change', carregarPets);

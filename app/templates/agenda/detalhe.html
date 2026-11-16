@@ -16,7 +16,7 @@
       <h2 class="h5 fw-bold mb-3">Dados do atendimento</h2>
       <div class="row g-3">
         <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Tutor</div><div class="fw-bold">{{ agendamento.tutor.nome }}</div><div class="small">{{ agendamento.tutor.telefone }}</div></div></div>
-        <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Serviço</div><div class="fw-bold">{{ agendamento.servicos_descricao }}</div><div class="small">{{ agendamento.duracao_total_minutos }} minutos • {{ agendamento.valor_resumo }}</div></div></div>
+        <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Serviço</div><div class="fw-bold">{{ agendamento.servicos_descricao }}</div><div class="small">{{ agendamento.duracao_total_minutos }} minutos • <span class="sensitive-value">{{ agendamento.valor_resumo }}</span></div></div></div>
         <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Pagamento</div><div class="fw-bold">{{ 'Pago' if agendamento.pago else 'Pendente' }}</div><div class="small">{{ agendamento.forma_pagamento or 'Forma não informada' }}</div></div></div>
         <div class="col-md-6"><div class="bg-light rounded-4 p-3"><div class="subtle small">Pet</div><div class="fw-bold">{{ agendamento.pet.nome }} - {{ agendamento.pet.porte }}</div><div class="small">{{ agendamento.pet.raca or 'Sem raça informada' }}</div></div></div>
       </div>
@@ -86,8 +86,8 @@
       <div class="d-grid gap-2">
         <a class="btn btn-outline-primary" href="{{ url_for('agenda.novo', tutor_id=agendamento.tutor_id, data=agendamento.data.strftime('%Y-%m-%d'), hora_inicio=agendamento.hora_inicio) }}"><i class="bi bi-plus-lg me-1"></i>Agendar outro pet</a>
         <a class="btn btn-light" href="{{ url_for('agenda.editar', agendamento_id=agendamento.id) }}"><i class="bi bi-pencil me-1"></i>Editar</a>
-        <form method="post" action="{{ url_for('agenda.excluir', agendamento_id=agendamento.id) }}" data-confirm="Deseja excluir este agendamento?">
-          <button class="btn btn-outline-danger w-100"><i class="bi bi-trash me-1"></i>Excluir</button>
+        <form method="post" action="{{ url_for('agenda.excluir', agendamento_id=agendamento.id) }}" data-confirm="Cancelar este agendamento e preservar seu histórico?">
+          <button class="btn btn-outline-danger w-100"><i class="bi bi-x-circle me-1"></i>Cancelar</button>
         </form>
       </div>
     </div>

@@ -27,11 +27,17 @@ def parse_date_or_today(value):
 
 
 def render_agendamento_form(agendamento, tutores, servicos, data_padrao, selected_servico_ids=None):
+    prefill_package = None
+    if not agendamento and request.method == "GET":
+        candidate_id = request.args.get("pacote_cliente_id", type=int)
+        candidate = db.session.get(PacoteCliente, candidate_id) if candidate_id else None
+        if candidate and candidate.pode_consumir(candidate.pacote.servico_id, parse_date_or_today(data_padrao)):
+            prefill_package = candidate
     if selected_servico_ids is None:
-        selected_servico_ids = agendamento.servico_ids if agendamento else []
+        selected_servico_ids = agendamento.servico_ids if agendamento else ([prefill_package.pacote.servico_id] if prefill_package else [])
     dados = request.form if request.method == "POST" else request.args
-    selected_tutor_id = dados.get("tutor_id", type=int) or (agendamento.tutor_id if agendamento else None)
-    selected_pet_id = dados.get("pet_id", type=int) or (agendamento.pet_id if agendamento else None)
+    selected_tutor_id = dados.get("tutor_id", type=int) or (agendamento.tutor_id if agendamento else (prefill_package.tutor_id if prefill_package else None))
+    selected_pet_id = dados.get("pet_id", type=int) or (agendamento.pet_id if agendamento else (prefill_package.pet_id if prefill_package else None))
     selected_hora_inicio = dados.get("hora_inicio", "") or (agendamento.hora_inicio if agendamento else "")
     pets_tutor = Pet.query.filter_by(tutor_id=selected_tutor_id, ativo=True).order_by(Pet.nome).all() if selected_tutor_id else []
     return render_template(
@@ -41,7 +47,7 @@ def render_agendamento_form(agendamento, tutores, servicos, data_padrao, selecte
         servicos=servicos,
         formas=FORMAS_PAGAMENTO,
         data_padrao=dados.get("data") or data_padrao,
-        pacote_atual=agendamento.pacote_cliente if agendamento else None,
+        pacote_atual=agendamento.pacote_cliente if agendamento else prefill_package,
         selected_servico_ids=selected_servico_ids,
         selected_tutor_id=selected_tutor_id,
         selected_pet_id=selected_pet_id,
@@ -390,8 +396,13 @@ def status(agendamento_id):
     novo_status = request.form.get("status")
     if novo_status not in STATUS_AGENDAMENTO:
         flash("Status inválido.", "warning")
+    elif agendamento.pacote_cliente and not agendamento.is_ativo and novo_status not in {"Cancelado", "Faltou"} and not agendamento.pacote_cliente.pode_consumir(agendamento.pacote_cliente.pacote.servico_id, agendamento.data, agendamento.id):
+        flash("O ciclo do pacote não permite reativar este crédito.", "warning")
     else:
         agendamento.status = novo_status
+        if agendamento.pacote_cliente and (agendamento.pacote_cliente.status != "Ativo" or agendamento.pacote_cliente.data_fim < date.today()):
+            db.session.flush()
+            agendamento.pacote_cliente.creditos_expirados = agendamento.pacote_cliente.saldo
         db.session.commit()
         flash("Status atualizado.", "success")
     return redirect(request.referrer or url_for("agenda.detalhe", agendamento_id=agendamento.id))
@@ -401,9 +412,12 @@ def status(agendamento_id):
 @login_required
 def excluir(agendamento_id):
     agendamento = db.get_or_404(Agendamento, agendamento_id)
-    db.session.delete(agendamento)
+    agendamento.status = "Cancelado"
+    if agendamento.pacote_cliente and (agendamento.pacote_cliente.status != "Ativo" or agendamento.pacote_cliente.data_fim < date.today()):
+        db.session.flush()
+        agendamento.pacote_cliente.creditos_expirados = agendamento.pacote_cliente.saldo
     db.session.commit()
-    flash("Agendamento excluído.", "info")
+    flash("Agendamento cancelado; histórico preservado.", "info")
     return redirect(url_for("agenda.index", data=agendamento.data.strftime("%Y-%m-%d")))
 
 
@@ -435,6 +449,7 @@ def api_pacotes():
             PacoteCliente.status == "Ativo",
             PacoteCliente.data_inicio <= data_ref,
             PacoteCliente.data_fim >= data_ref,
+            PacoteCliente.data_fim >= date.today(),
         )
         .order_by(PacoteCliente.data_fim, PacoteCliente.id)
         .all()
@@ -450,7 +465,7 @@ def api_pacotes():
 
     resposta = []
     for pacote_cliente in pacotes:
-        if not pacote_cliente.pacote.ativo or pacote_cliente.pacote.servico_id not in servico_ids:
+        if pacote_cliente.pacote.servico_id not in servico_ids or (pacote_cliente.id != pacote_atual_id and not pacote_cliente.pode_consumir(pacote_cliente.pacote.servico_id, data_ref)):
             continue
         saldo = pacote_cliente.saldo_disponivel(ignore_agendamento_id=agendamento_id)
         if saldo <= 0 and pacote_cliente.id != pacote_atual_id:

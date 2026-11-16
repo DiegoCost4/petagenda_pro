@@ -6,7 +6,7 @@ from flask_login import login_required
 from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 from app.extensions import db
-from app.models import Pet, Tutor, PacoteCliente
+from app.models import Pet, Tutor, PacoteCliente, Hospedagem, HospedagemPet
 from app.utils import PORTES, ESPECIES
 
 bp = Blueprint("pets", __name__, url_prefix="/pets")
@@ -92,7 +92,8 @@ def detalhe(pet_id):
         .order_by(PacoteCliente.status, PacoteCliente.data_fim.desc())
         .all()
     )
-    return render_template("pets/detalhe.html", pet=pet, pacotes_cliente=pacotes_cliente)
+    hospedagens = Hospedagem.query.join(HospedagemPet).filter(HospedagemPet.pet_id == pet.id).order_by(Hospedagem.entrada.desc()).all()
+    return render_template("pets/detalhe.html", pet=pet, pacotes_cliente=pacotes_cliente, hospedagens=hospedagens)
 
 
 @bp.route("/<int:pet_id>/editar", methods=["GET", "POST"])

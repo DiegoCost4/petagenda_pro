@@ -1,13 +1,13 @@
 {
   "name": "PetAgenda Pro",
   "short_name": "PetAgenda",
-  "description": "Sistema de agenda, clientes e pets para banho e tosa.",
+  "description": "Agenda, pacotes e hotelzinho para pet shop.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#F5F8FA",
-  "theme_color": "#35B7A8",
-  "orientation": "portrait-primary",
+  "background_color": "#F6F5EF",
+  "theme_color": "#233D38",
+  "orientation": "any",
   "icons": [
     {"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
     {"src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}

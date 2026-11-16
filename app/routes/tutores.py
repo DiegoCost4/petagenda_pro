@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from sqlalchemy import or_
 from app.extensions import db
-from app.models import Tutor, PacoteCliente
+from app.models import Tutor, PacoteCliente, Hospedagem
 
 bp = Blueprint("tutores", __name__, url_prefix="/tutores")
 
@@ -52,7 +52,8 @@ def detalhe(tutor_id):
         .order_by(PacoteCliente.status, PacoteCliente.data_fim.desc())
         .all()
     )
-    return render_template("tutores/detalhe.html", tutor=tutor, pacotes_cliente=pacotes_cliente)
+    hospedagens = Hospedagem.query.filter_by(tutor_id=tutor.id).order_by(Hospedagem.entrada.desc()).all()
+    return render_template("tutores/detalhe.html", tutor=tutor, pacotes_cliente=pacotes_cliente, hospedagens=hospedagens)
 
 
 @bp.route("/<int:tutor_id>/editar", methods=["GET", "POST"])

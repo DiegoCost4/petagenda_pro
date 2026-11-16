@@ -1,12 +1,15 @@
 from pathlib import Path
 from datetime import date
+import hashlib
+import sqlite3
+from contextlib import closing
 import click
 from flask import Flask, render_template
 from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 from sqlalchemy import inspect, text
 from .extensions import db
-from .models import User, HorarioFuncionamento, Servico, Pet
+from .models import User, HorarioFuncionamento, Servico, Pet, HotelConfig
 
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
@@ -30,7 +33,11 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
-    ensure_schema(app)
+    with app.app_context():
+        # Banco novo de desenvolvimento: cria tudo. Banco existente: upgrade explícito
+        # após backup, antes de iniciar o serviço com esta versão.
+        if "pacotes_clientes" not in inspect(db.engine).get_table_names():
+            ensure_schema(app)
 
     from .routes.auth import bp as auth_bp
     from .routes.dashboard import bp as dashboard_bp
@@ -41,6 +48,7 @@ def create_app():
     from .routes.agenda import bp as agenda_bp
     from .routes.financeiro import bp as financeiro_bp
     from .routes.configuracoes import bp as configuracoes_bp
+    from .routes.hotel import bp as hotel_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -51,6 +59,7 @@ def create_app():
     app.register_blueprint(agenda_bp)
     app.register_blueprint(financeiro_bp)
     app.register_blueprint(configuracoes_bp)
+    app.register_blueprint(hotel_bp)
 
     @app.errorhandler(404)
     def not_found(error):
@@ -89,9 +98,72 @@ def ensure_schema(app):
         if "data_aniversario" not in columns:
             with db.engine.begin() as connection:
                 connection.execute(text("ALTER TABLE pets ADD COLUMN data_aniversario DATE"))
+        # Migração incremental de tabelas legadas; nunca altera valores existentes.
+        package_columns = {column["name"] for column in inspector.get_columns("pacotes_clientes")}
+        additions = {
+            "contrato_id": "INTEGER REFERENCES pacotes_clientes(id)",
+            "ciclo_anterior_id": "INTEGER REFERENCES pacotes_clientes(id)",
+            "tipo_renovacao": "VARCHAR(20)",
+            "aprovado_em": "TIMESTAMP",
+            "aprovado_por_id": "INTEGER REFERENCES users(id)",
+            "encerrado_em": "DATE",
+            "creditos_expirados": "INTEGER NOT NULL DEFAULT 0",
+            "dia_ancora": "INTEGER",
+        }
+        with db.engine.begin() as connection:
+            for name, definition in additions.items():
+                if name not in package_columns:
+                    connection.execute(text(f"ALTER TABLE pacotes_clientes ADD COLUMN {name} {definition}"))
+            connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_pacote_ciclo_anterior ON pacotes_clientes(ciclo_anterior_id)"))
+        hotel_columns = {column["name"] for column in inspector.get_columns("hospedagens")}
+        hotel_additions = {
+            "pago": "BOOLEAN NOT NULL DEFAULT 0",
+            "data_pagamento": "DATE",
+            "forma_pagamento": "VARCHAR(50)",
+        }
+        with db.engine.begin() as connection:
+            for name, definition in hotel_additions.items():
+                if name not in hotel_columns:
+                    connection.execute(text(f"ALTER TABLE hospedagens ADD COLUMN {name} {definition}"))
+        if db.session.get(HotelConfig, 1) is None:
+            db.session.add(HotelConfig(id=1, diaria_padrao=0))
+            db.session.commit()
 
 
 def register_commands(app):
+    @app.cli.command("backup-db")
+    @click.argument("destino", type=click.Path(path_type=Path))
+    def backup_db_command(destino):
+        """Backup consistente e verificado do SQLite, sem sobrescrever arquivos."""
+        if db.engine.dialect.name != "sqlite" or not db.engine.url.database:
+            raise click.ClickException("Use pg_dump para PostgreSQL; este comando é apenas para SQLite em arquivo.")
+        origem = Path(db.engine.url.database).resolve()
+        destino = destino.resolve()
+        if destino.exists() or destino == origem:
+            raise click.ClickException("Destino já existe ou coincide com o banco original.")
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with closing(sqlite3.connect(f"file:{origem.as_posix()}?mode=ro", uri=True)) as source:
+                with closing(sqlite3.connect(destino)) as target:
+                    source.backup(target)
+                    result = target.execute("PRAGMA integrity_check").fetchone()[0]
+                    if result != "ok":
+                        raise click.ClickException(f"Backup falhou na verificação: {result}")
+                    tables = target.execute("SELECT count(*) FROM sqlite_master WHERE type='table'").fetchone()[0]
+                    if tables == 0:
+                        raise click.ClickException("Backup sem tabelas.")
+            digest = hashlib.sha256(destino.read_bytes()).hexdigest()
+            click.echo(f"Backup validado: {destino} | SHA256 {digest}")
+        except Exception:
+            if destino.exists():
+                destino.unlink()
+            raise
+
+    @app.cli.command("upgrade-safe")
+    def upgrade_safe_command():
+        """Confere e aplica apenas estruturas aditivas; faça backup antes em produção."""
+        ensure_schema(app)
+        click.echo("Estrutura aditiva verificada.")
     @app.cli.command("init-db")
     def init_db_command():
         """Cria as tabelas e dados iniciais."""

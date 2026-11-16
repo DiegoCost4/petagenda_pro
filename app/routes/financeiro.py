@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from sqlalchemy import func, or_
 from app.extensions import db
-from app.models import Agendamento, Pagamento, PacoteCliente
+from app.models import Agendamento, Pagamento, PacoteCliente, Hospedagem
 from app.utils import FORMAS_PAGAMENTO
 
 bp = Blueprint("financeiro", __name__, url_prefix="/financeiro")
@@ -31,15 +31,24 @@ def index():
     ).order_by(Agendamento.data.desc(), Agendamento.hora_inicio).all()
 
     pacotes_periodo = PacoteCliente.query.filter(
-        PacoteCliente.status != "Cancelado",
+        or_(PacoteCliente.status != "Cancelado", PacoteCliente.pago.is_(True)),
         or_(
             (PacoteCliente.data_inicio >= data_ini) & (PacoteCliente.data_inicio <= data_fim),
             (PacoteCliente.data_pagamento >= data_ini) & (PacoteCliente.data_pagamento <= data_fim),
         ),
     ).order_by(PacoteCliente.data_inicio.desc()).all()
 
+    hospedagens_periodo = Hospedagem.query.filter(
+        Hospedagem.status != "Cancelado",
+        or_(
+            (Hospedagem.entrada >= data_ini) & (Hospedagem.entrada <= data_fim),
+            (Hospedagem.data_pagamento >= data_ini) & (Hospedagem.data_pagamento <= data_fim),
+        ),
+    ).order_by(Hospedagem.entrada.desc(), Hospedagem.id.desc()).all()
+
     total_previsto_atendimentos = sum((Decimal(a.valor or 0) for a in agendamentos), Decimal("0"))
     total_previsto_pacotes = sum((Decimal(p.valor or 0) for p in pacotes_periodo), Decimal("0"))
+    total_previsto_hotel = sum((Decimal(h.total or 0) for h in hospedagens_periodo), Decimal("0"))
     total_recebido_atendimentos = (
         Pagamento.query.with_entities(func.coalesce(func.sum(Pagamento.valor), 0))
         .filter(Pagamento.data_pagamento >= data_ini, Pagamento.data_pagamento <= data_fim)
@@ -56,8 +65,18 @@ def index():
         .scalar()
     )
     total_recebido_pacotes = Decimal(total_recebido_pacotes or 0)
-    total_previsto = total_previsto_atendimentos + total_previsto_pacotes
-    total_recebido = total_recebido_atendimentos + total_recebido_pacotes
+    total_recebido_hotel = (
+        Hospedagem.query.with_entities(func.coalesce(func.sum(Hospedagem.total), 0))
+        .filter(
+            Hospedagem.pago.is_(True),
+            Hospedagem.data_pagamento >= data_ini,
+            Hospedagem.data_pagamento <= data_fim,
+        )
+        .scalar()
+    )
+    total_recebido_hotel = Decimal(total_recebido_hotel or 0)
+    total_previsto = total_previsto_atendimentos + total_previsto_pacotes + total_previsto_hotel
+    total_recebido = total_recebido_atendimentos + total_recebido_pacotes + total_recebido_hotel
     total_pendente = total_previsto - total_recebido
 
     pagamentos_por_forma_atendimentos = (
@@ -76,8 +95,18 @@ def index():
         .group_by(PacoteCliente.forma_pagamento)
         .all()
     )
+    pagamentos_por_forma_hotel = (
+        db.session.query(Hospedagem.forma_pagamento, func.coalesce(func.sum(Hospedagem.total), 0))
+        .filter(
+            Hospedagem.pago.is_(True),
+            Hospedagem.data_pagamento >= data_ini,
+            Hospedagem.data_pagamento <= data_fim,
+        )
+        .group_by(Hospedagem.forma_pagamento)
+        .all()
+    )
     totais_por_forma = {}
-    for forma, total in pagamentos_por_forma_atendimentos + pagamentos_por_forma_pacotes:
+    for forma, total in pagamentos_por_forma_atendimentos + pagamentos_por_forma_pacotes + pagamentos_por_forma_hotel:
         forma = forma or "Não informado"
         totais_por_forma[forma] = totais_por_forma.get(forma, Decimal("0")) + Decimal(total or 0)
     pagamentos_por_forma = sorted(totais_por_forma.items())
@@ -92,10 +121,13 @@ def index():
         total_pendente=total_pendente,
         pagamentos_por_forma=pagamentos_por_forma,
         pacotes_periodo=pacotes_periodo,
+        hospedagens_periodo=hospedagens_periodo,
         total_previsto_atendimentos=total_previsto_atendimentos,
         total_previsto_pacotes=total_previsto_pacotes,
+        total_previsto_hotel=total_previsto_hotel,
         total_recebido_atendimentos=total_recebido_atendimentos,
         total_recebido_pacotes=total_recebido_pacotes,
+        total_recebido_hotel=total_recebido_hotel,
         formas=FORMAS_PAGAMENTO,
     )
 

@@ -7,6 +7,7 @@
     <p class="subtle mb-0">Controle mensal de banhos e atendimentos por pet.</p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-light" href="{{ url_for('pacotes.renovacoes') }}"><i class="bi bi-arrow-repeat me-1"></i>Renovações</a>
     <a class="btn btn-outline-primary" href="{{ url_for('pacotes.novo') }}"><i class="bi bi-tags me-1"></i>Novo pacote</a>
     <a class="btn btn-primary" href="{{ url_for('pacotes.cliente_novo') }}"><i class="bi bi-plus-lg me-1"></i>Vincular pet</a>
   </div>
@@ -84,8 +85,8 @@
                   <div class="d-flex justify-content-end gap-2">
                     <a class="btn btn-sm btn-light" href="{{ url_for('pacotes.cliente_detalhe', pacote_cliente_id=item.id) }}">Abrir</a>
                     {% if not item.usos %}
-                    <form method="post" action="{{ url_for('pacotes.cliente_excluir', pacote_cliente_id=item.id) }}" data-confirm="Excluir este pacote? Esta acao remove o valor do financeiro.">
-                      <button class="btn btn-sm btn-outline-danger" aria-label="Excluir pacote"><i class="bi bi-trash"></i></button>
+                    <form method="post" action="{{ url_for('pacotes.cliente_excluir', pacote_cliente_id=item.id) }}" data-confirm="Cancelar este pacote e preservar seu histórico?">
+                      <button class="btn btn-sm btn-outline-danger" aria-label="Cancelar pacote"><i class="bi bi-x-circle"></i></button>
                     </form>
                     {% endif %}
                   </div>
@@ -124,8 +125,8 @@
               <div class="d-flex gap-2">
                 <a class="btn btn-sm btn-light" href="{{ url_for('pacotes.editar', pacote_id=modelo.id) }}">Editar</a>
                 {% if not modelo.clientes %}
-                <form method="post" action="{{ url_for('pacotes.excluir', pacote_id=modelo.id) }}" data-confirm="Excluir este modelo de pacote?">
-                  <button class="btn btn-sm btn-outline-danger" aria-label="Excluir modelo de pacote"><i class="bi bi-trash"></i></button>
+                <form method="post" action="{{ url_for('pacotes.excluir', pacote_id=modelo.id) }}" data-confirm="Inativar este modelo de pacote?">
+                  <button class="btn btn-sm btn-outline-danger" aria-label="Inativar modelo de pacote"><i class="bi bi-x-circle"></i></button>
                 </form>
                 {% endif %}
               </div>

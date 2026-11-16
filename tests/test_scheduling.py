@@ -234,7 +234,7 @@ class SchedulingTests(unittest.TestCase):
         })
         self.assertEqual([item['id'] for item in response.json], [packages[1].id])
 
-    def test_client_package_can_be_deleted_before_use_and_leaves_finance(self):
+    def test_client_package_cancellation_preserves_finance(self):
         model = Pacote(servico=self.bath, nome='Mensal', quantidade_atendimentos=4, validade_dias=30, valor=180)
         package = PacoteCliente(
             pacote=model, tutor=self.tutor, pet=self.pet,
@@ -254,13 +254,13 @@ class SchedulingTests(unittest.TestCase):
         response = self.client.post(f'/pacotes/cliente/{package_id}/excluir')
         self.assertEqual(response.status_code, 302)
         db.session.expire_all()
-        self.assertIsNone(db.session.get(PacoteCliente, package_id))
+        self.assertEqual(db.session.get(PacoteCliente, package_id).status, 'Cancelado')
 
         response = self.client.get('/financeiro/', query_string={
             'data_ini': self.day.isoformat(),
             'data_fim': self.day.isoformat(),
         })
-        self.assertNotIn('Mensal', response.get_data(as_text=True))
+        self.assertIn('Mensal', response.get_data(as_text=True))
 
     def test_client_package_with_usage_is_not_deleted(self):
         model = Pacote(servico=self.bath, nome='Mensal', quantidade_atendimentos=4, validade_dias=30, valor=180)
@@ -278,7 +278,7 @@ class SchedulingTests(unittest.TestCase):
         self.assertIsNotNone(db.session.get(PacoteCliente, package.id))
         self.assertEqual(PacoteCliente.query.count(), 1)
 
-    def test_package_model_can_only_be_deleted_without_links(self):
+    def test_package_model_is_inactivated_without_losing_links(self):
         unused = Pacote(servico=self.bath, nome='Avulso', quantidade_atendimentos=2, validade_dias=15, valor=95)
         linked = Pacote(servico=self.bath, nome='Mensal', quantidade_atendimentos=4, validade_dias=30, valor=180)
         db.session.add_all([unused, linked])
@@ -294,11 +294,12 @@ class SchedulingTests(unittest.TestCase):
 
         self.assertEqual(self.client.post(f'/pacotes/{unused_id}/excluir').status_code, 302)
         db.session.expire_all()
-        self.assertIsNone(db.session.get(Pacote, unused_id))
+        self.assertFalse(db.session.get(Pacote, unused_id).ativo)
 
         self.assertEqual(self.client.post(f'/pacotes/{linked_id}/excluir').status_code, 302)
         db.session.expire_all()
         self.assertIsNotNone(db.session.get(Pacote, linked_id))
+        self.assertFalse(db.session.get(Pacote, linked_id).ativo)
 
     def test_second_pet_shortcut_prefills_tutor_and_date(self):
         item = self.book()

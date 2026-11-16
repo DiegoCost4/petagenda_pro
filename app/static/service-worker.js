@@ -1,7 +1,5 @@
-const CACHE_NAME = 'petagenda-pro-v1';
+const CACHE_NAME = 'petagenda-pro-v3';
 const STATIC_ASSETS = [
-  '/',
-  '/login',
   '/static/css/style.css',
   '/static/js/app.js',
   '/static/manifest.json',
@@ -21,6 +19,7 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  if (!event.request.url.includes('/static/')) return;
   event.respondWith(
     fetch(event.request)
       .then(response => {
@@ -28,6 +27,6 @@ self.addEventListener('fetch', event => {
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         return response;
       })
-      .catch(() => caches.match(event.request).then(cached => cached || caches.match('/login')))
+      .catch(() => caches.match(event.request))
   );
 });

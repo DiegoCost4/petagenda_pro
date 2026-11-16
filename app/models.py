@@ -156,6 +156,19 @@ class PacoteCliente(TimestampMixin, db.Model):
     data_pagamento = db.Column(db.Date)
     status = db.Column(db.String(30), default="Ativo", nullable=False, index=True)
     observacoes = db.Column(db.Text)
+    # A linha legada continua sendo o primeiro ciclo. Cada renovação cria outra linha.
+    contrato_id = db.Column(db.Integer, db.ForeignKey("pacotes_clientes.id"), index=True)
+    ciclo_anterior_id = db.Column(db.Integer, db.ForeignKey("pacotes_clientes.id"), unique=True)
+    tipo_renovacao = db.Column(db.String(20))
+    aprovado_em = db.Column(db.DateTime)
+    aprovado_por_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    encerrado_em = db.Column(db.Date)
+    creditos_expirados = db.Column(db.Integer, default=0, nullable=False)
+    dia_ancora = db.Column(db.Integer)
+
+    contrato = db.relationship("PacoteCliente", remote_side=[id], foreign_keys=[contrato_id])
+    ciclo_anterior = db.relationship("PacoteCliente", remote_side=[id], foreign_keys=[ciclo_anterior_id], backref=db.backref("proximo_ciclo", uselist=False))
+    aprovado_por = db.relationship("User")
 
     pacote = db.relationship("Pacote", back_populates="clientes")
     tutor = db.relationship("Tutor", back_populates="pacotes_clientes")
@@ -209,15 +222,23 @@ class PacoteCliente(TimestampMixin, db.Model):
     def saldo_disponivel(self, ignore_agendamento_id=None):
         return max((self.quantidade_total or 0) - self.usos_consumidos(ignore_agendamento_id), 0)
 
+    @property
+    def saldo_utilizavel(self):
+        return self.saldo if self.status == "Ativo" and self.vigente_em(date.today()) and not self.encerrado_em else 0
+
+    @property
+    def creditos_expirados_atuais(self):
+        return self.saldo if self.status in {"Encerrado", "Cancelado"} or self.data_fim < date.today() else 0
+
     def vigente_em(self, data_ref):
-        return self.data_inicio <= data_ref <= self.data_fim
+        return self.data_inicio <= data_ref <= self.data_fim and (not self.encerrado_em or data_ref < self.encerrado_em)
 
     def pode_consumir(self, servico_id, data_ref, ignore_agendamento_id=None):
         return (
             self.status == "Ativo"
             and self.pacote
-            and self.pacote.ativo
             and self.pacote.servico_id == servico_id
+            and self.data_fim >= date.today()
             and self.vigente_em(data_ref)
             and self.saldo_disponivel(ignore_agendamento_id) > 0
         )
@@ -235,6 +256,67 @@ class UsoPacote(TimestampMixin, db.Model):
 
     pacote_cliente = db.relationship("PacoteCliente", back_populates="usos")
     agendamento = db.relationship("Agendamento", back_populates="pacote_uso")
+
+
+class RenovacaoPacote(TimestampMixin, db.Model):
+    __tablename__ = "renovacoes_pacote"
+    id = db.Column(db.Integer, primary_key=True)
+    ciclo_anterior_id = db.Column(db.Integer, db.ForeignKey("pacotes_clientes.id"), nullable=False, unique=True)
+    novo_ciclo_id = db.Column(db.Integer, db.ForeignKey("pacotes_clientes.id"), unique=True)
+    decisao = db.Column(db.String(20), nullable=False)
+    tipo = db.Column(db.String(20), nullable=False)
+    decidida_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    creditos_expirados = db.Column(db.Integer, nullable=False, default=0)
+    ciclo_anterior = db.relationship("PacoteCliente", foreign_keys=[ciclo_anterior_id])
+    novo_ciclo = db.relationship("PacoteCliente", foreign_keys=[novo_ciclo_id])
+    usuario = db.relationship("User")
+
+
+class HotelConfig(db.Model):
+    __tablename__ = "hotel_config"
+    id = db.Column(db.Integer, primary_key=True)
+    diaria_padrao = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+
+
+class Hospedagem(TimestampMixin, db.Model):
+    __tablename__ = "hospedagens"
+    id = db.Column(db.Integer, primary_key=True)
+    tutor_id = db.Column(db.Integer, db.ForeignKey("tutores.id"), nullable=False, index=True)
+    entrada = db.Column(db.Date, nullable=False, index=True)
+    saida = db.Column(db.Date, nullable=False, index=True)
+    diaria = db.Column(db.Numeric(10, 2), nullable=False)
+    diarias = db.Column(db.Integer, nullable=False)
+    subtotal = db.Column(db.Numeric(12, 2), nullable=False)
+    desconto_percentual = db.Column(db.Numeric(5, 2), nullable=False, default=0)
+    desconto_valor = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    total = db.Column(db.Numeric(12, 2), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="Agendado", index=True)
+    pago = db.Column(db.Boolean, nullable=False, default=False)
+    data_pagamento = db.Column(db.Date)
+    forma_pagamento = db.Column(db.String(50))
+    checkin_em = db.Column(db.DateTime)
+    checkout_em = db.Column(db.DateTime)
+    observacoes = db.Column(db.Text)
+    tutor = db.relationship("Tutor")
+    pets = db.relationship("Pet", secondary="hospedagem_pets")
+
+
+class HospedagemPet(db.Model):
+    __tablename__ = "hospedagem_pets"
+    hospedagem_id = db.Column(db.Integer, db.ForeignKey("hospedagens.id"), primary_key=True)
+    pet_id = db.Column(db.Integer, db.ForeignKey("pets.id"), primary_key=True)
+
+
+class HospedagemEvento(db.Model):
+    __tablename__ = "hospedagem_eventos"
+    id = db.Column(db.Integer, primary_key=True)
+    hospedagem_id = db.Column(db.Integer, db.ForeignKey("hospedagens.id"), nullable=False, index=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    ocorrido_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    acao = db.Column(db.String(30), nullable=False)
+    detalhes = db.Column(db.Text)
+    usuario = db.relationship("User")
 
 
 class HorarioFuncionamento(TimestampMixin, db.Model):
