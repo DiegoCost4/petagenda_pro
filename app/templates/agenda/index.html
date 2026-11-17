@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Agenda - PetAgenda Pro{% endblock %}
 {% block content %}
-<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 holiday-module-heading holiday-module-heading--agenda">
   <div>
     <h1 class="page-title h3 mb-1">Agenda</h1>
     <p class="subtle mb-0">{{ data_ref.strftime('%d/%m/%Y') }}</p>
@@ -32,8 +32,8 @@
 
 <div class="row g-3">
   <div class="col-lg-8">
-    <div class="card card-soft p-3 p-md-4">
-      <h2 class="h5 fw-bold mb-3">Atendimentos do dia</h2>
+    <div class="card card-soft p-3 p-md-4 holiday-panel holiday-panel--module">
+      <h2 class="h5 fw-bold mb-3 holiday-panel-title holiday-panel-title--sprig">Atendimentos do dia</h2>
       {% if agendamentos %}
         <div class="vstack gap-3">
           {% for item in agendamentos %}
@@ -69,7 +69,7 @@
           {% endfor %}
         </div>
       {% else %}
-        <div class="text-center py-5 subtle">Nenhum agendamento nesta data.</div>
+        <div class="text-center py-5 subtle holiday-empty holiday-empty--snow">Nenhum agendamento nesta data.</div>
       {% endif %}
     </div>
   </div>

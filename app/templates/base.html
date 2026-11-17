@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR"{% if christmas_decoration_enabled %} class="christmas-enabled"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -17,6 +17,7 @@
 <body>
   {% if current_user.is_authenticated %}
   <header class="app-header sticky-top">
+    {% include 'components/christmas_decorations.html' %}
     <div class="container-fluid d-flex align-items-center justify-content-between py-2 gap-3">
       <a href="{{ url_for('dashboard.index') }}" class="brand-link d-flex align-items-center gap-2 text-decoration-none">
         <div class="brand-icon"><i class="bi bi-heart-fill"></i></div>

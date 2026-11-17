@@ -279,6 +279,13 @@ class HotelConfig(db.Model):
     diaria_padrao = db.Column(db.Numeric(10, 2), nullable=False, default=0)
 
 
+class SystemSetting(db.Model):
+    __tablename__ = "system_settings"
+
+    key = db.Column(db.String(80), primary_key=True)
+    value = db.Column(db.String(255), nullable=False)
+
+
 class Hospedagem(TimestampMixin, db.Model):
     __tablename__ = "hospedagens"
     id = db.Column(db.Integer, primary_key=True)

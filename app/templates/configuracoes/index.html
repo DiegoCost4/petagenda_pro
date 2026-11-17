@@ -3,7 +3,7 @@
 {% block content %}
 <div class="mb-3">
   <h1 class="page-title h3 mb-1">Configurações</h1>
-  <p class="subtle mb-0">Horários de funcionamento, bloqueios e usuários.</p>
+  <p class="subtle mb-0">Aparência do sistema, horários de funcionamento, bloqueios e usuários.</p>
 </div>
 
 <div class="row g-3">
@@ -59,6 +59,24 @@
   </div>
 
   <div class="col-lg-5">
+    {% if current_user.role == 'admin' %}
+    <div class="card card-soft p-3 p-md-4 mb-3">
+      <h2 class="h5 fw-bold mb-3">Aparência do Sistema</h2>
+      <form id="christmas-decoration-form" method="post" action="{{ url_for('configuracoes.salvar_decoracao_natal') }}">
+        <div class="d-flex align-items-start justify-content-between gap-3">
+          <div>
+            <label class="form-label fw-bold mb-1" for="christmas-decoration-toggle">Decoração de Natal</label>
+            <p class="subtle small mb-0">Ative a decoração natalina para adicionar elementos festivos ao sistema sem alterar sua aparência e funcionalidades originais.</p>
+          </div>
+          <div class="form-check form-switch flex-shrink-0 mt-1">
+            <input class="form-check-input" type="checkbox" role="switch" name="christmas_decoration_enabled" value="true" id="christmas-decoration-toggle" aria-describedby="christmas-decoration-status" {% if christmas_decoration_enabled %}checked{% endif %}>
+          </div>
+        </div>
+        <div id="christmas-decoration-status" class="subtle small mt-2" role="status" aria-live="polite">{{ 'Ativada' if christmas_decoration_enabled else 'Desativada' }}</div>
+        <button type="submit" class="btn btn-primary mt-3">Salvar aparência</button>
+      </form>
+    </div>
+    {% endif %}
     <div class="card card-soft p-3 p-md-4 mb-3">
       <h2 class="h5 fw-bold mb-3">Novo bloqueio de agenda</h2>
       <form method="post" action="{{ url_for('configuracoes.novo_bloqueio') }}" class="vstack gap-2">

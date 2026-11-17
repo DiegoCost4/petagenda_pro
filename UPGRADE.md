@@ -38,6 +38,8 @@ Guarde o dump fora do servidor e teste uma restauração em um banco isolado. Ap
 
 ## Mudanças de esquema
 
+O upgrade também cria a tabela aditiva `system_settings` para preferências globais. A opção `christmas_decoration_enabled` começa desativada quando não há registro e só pode ser alterada por um administrador em **Configurações > Aparência do Sistema**. Nenhum registro operacional existente é modificado.
+
 `upgrade-safe` cria `renovacoes_pacote`, `hotel_config`, `hospedagens`, `hospedagem_pets` e `hospedagem_eventos`. Adiciona a `pacotes_clientes` as colunas `contrato_id`, `ciclo_anterior_id`, `tipo_renovacao`, `aprovado_em`, `aprovado_por_id`, `encerrado_em`, `creditos_expirados` e `dia_ancora`, além de um índice único sobre `ciclo_anterior_id`. A coluna antiga `pets.data_aniversario` continua coberta pelo upgrade. Nenhuma linha anterior é convertida, apagada ou renumerada. Cada vínculo legado é interpretado como seu primeiro ciclo; renovações passam a criar novas linhas vinculadas.
 
 Para o financeiro do hotelzinho, o mesmo comando adiciona `pago`, `data_pagamento` e `forma_pagamento` à tabela `hospedagens`. Hospedagens existentes começam como pendentes; nenhum recebimento anterior é presumido.

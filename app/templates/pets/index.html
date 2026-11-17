@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% block title %}Pets - PetAgenda Pro{% endblock %}
 {% block content %}
-<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 holiday-module-heading holiday-module-heading--pets">
   <div>
     <h1 class="page-title h3 mb-1">Pets</h1>
     <p class="subtle mb-0">Animais cadastrados e histórico de cuidados.</p>
   </div>
   <a class="btn btn-primary" href="{{ url_for('pets.novo') }}"><i class="bi bi-plus-lg me-1"></i>Novo pet</a>
 </div>
-<div class="card card-soft p-3 p-md-4">
+<div class="card card-soft p-3 p-md-4 holiday-list-panel">
   <form class="row g-2 mb-3">
     <div class="col"><input class="form-control" name="q" value="{{ q }}" placeholder="Buscar por pet, raça ou tutor"></div>
     <div class="col-auto"><button class="btn btn-outline-primary"><i class="bi bi-search"></i></button></div>
@@ -18,7 +18,7 @@
       {% for pet in pets %}
       <div class="col-md-6 col-xl-4">
         <a href="{{ url_for('pets.detalhe', pet_id=pet.id) }}" class="text-decoration-none text-dark">
-          <div class="bg-light rounded-4 p-3 h-100 d-flex gap-3 align-items-center">
+          <div class="bg-light rounded-4 p-3 h-100 d-flex gap-3 align-items-center holiday-pet-tile{% if loop.first %} holiday-pet-tile--accent{% endif %}">
             {% if pet.foto %}<img class="avatar-pet" src="{{ url_for('static', filename=pet.foto) }}">{% else %}<div class="avatar-empty"><i class="bi bi-heart-fill"></i></div>{% endif %}
             <div>
               <div class="fw-bold">{{ pet.nome }}</div>
@@ -32,7 +32,7 @@
       {% endfor %}
     </div>
   {% else %}
-    <div class="text-center py-5 subtle">Nenhum pet encontrado.</div>
+    <div class="text-center py-5 subtle holiday-empty holiday-empty--paw">Nenhum pet encontrado.</div>
   {% endif %}
 </div>
 {% endblock %}

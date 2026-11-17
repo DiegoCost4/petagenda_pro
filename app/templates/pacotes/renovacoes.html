@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Renovações · PetAgenda Pro{% endblock %}
 {% block content %}
-<div class="page-heading"><div><div class="eyebrow">PACOTES MENSAIS</div><h1 class="page-title">Renovações</h1><p class="subtle">{{ total_pendentes }} ciclo(s) aguardando decisão</p></div></div>
+<div class="page-heading holiday-module-heading holiday-module-heading--renewals"><div><div class="eyebrow">PACOTES MENSAIS</div><h1 class="page-title">Renovações</h1><p class="subtle">{{ total_pendentes }} ciclo(s) aguardando decisão</p></div></div>
 <div class="d-flex flex-wrap gap-2 mb-3" role="navigation" aria-label="Filtrar renovações">
   {% for tab in ['Pendentes', 'Renovados', 'Não renovados', 'Histórico'] %}<a class="btn {{ 'btn-primary' if filtro == tab else 'btn-light' }}" href="{{ url_for('pacotes.renovacoes', status=tab, q=q, inicio=inicio.isoformat() if inicio else '', fim=fim.isoformat() if fim else '') }}">{{ tab }}</a>{% endfor %}
 </div>
@@ -9,7 +9,7 @@
 <div class="row g-3">
 {% for item in items %}
 {% set ciclo = item if filtro == 'Pendentes' else item.ciclo_anterior %}
-<div class="col-md-6 col-xl-4"><article class="card card-soft p-4 h-100">
+<div class="col-md-6 col-xl-4"><article class="card card-soft p-4 h-100 holiday-renewal-card">
   <div class="d-flex justify-content-between gap-2"><div class="eyebrow">{{ ciclo.pacote.nome }}</div><span class="badge text-bg-{{ 'warning' if filtro == 'Pendentes' else ('success' if item.decisao == 'Aprovada' else 'secondary') }}">{{ 'Pendente' if filtro == 'Pendentes' else item.decisao }}</span></div>
   <h2 class="h5 mt-2 mb-1">{{ ciclo.pet.nome }}</h2><p class="subtle mb-3">{{ ciclo.tutor.nome }} · {{ ciclo.pacote.servico.nome }}</p>
   <div class="cycle-facts"><span>Vencimento<strong>{{ ciclo.data_fim.strftime('%d/%m/%Y') }}</strong></span><span>Créditos<strong>{{ ciclo.quantidade_total }}</strong></span><span>Usados<strong>{{ ciclo.consumidos }}</strong></span><span>Restantes<strong>{{ ciclo.saldo }}</strong></span></div>
@@ -19,6 +19,6 @@
     {% if filtro == 'Pendentes' %}<div class="d-flex gap-2"><form class="flex-fill" method="post" action="{{ url_for('pacotes.renovar', pacote_cliente_id=ciclo.id) }}" data-confirm="Aprovar a renovação? Os {{ ciclo.saldo }} créditos restantes expirarão e um novo ciclo mensal será criado."><input type="hidden" name="decisao" value="Aprovada"><button class="btn btn-primary w-100">Aprovar</button></form><form class="flex-fill" method="post" action="{{ url_for('pacotes.renovar', pacote_cliente_id=ciclo.id) }}" data-confirm="Registrar que este pacote não será renovado?"><input type="hidden" name="decisao" value="Recusada"><button class="btn btn-outline-danger w-100">Não renovar</button></form></div>{% endif %}
   </div>
 </article></div>
-{% else %}<div class="col-12"><div class="card card-soft p-5 text-center subtle">Nenhuma renovação neste filtro.</div></div>{% endfor %}
+{% else %}<div class="col-12"><div class="card card-soft p-5 text-center subtle holiday-empty holiday-empty--sprig">Nenhuma renovação neste filtro.</div></div>{% endfor %}
 </div>
 {% endblock %}

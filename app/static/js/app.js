@@ -1,4 +1,36 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const decorationForm = document.getElementById('christmas-decoration-form');
+  if (decorationForm) {
+    const toggle = document.getElementById('christmas-decoration-toggle');
+    const status = document.getElementById('christmas-decoration-status');
+    const saveButton = decorationForm.querySelector('button[type="submit"]');
+    toggle.addEventListener('change', () => {
+      status.textContent = 'Alteração não salva';
+    });
+    decorationForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      saveButton.disabled = true;
+      status.textContent = 'Salvando...';
+      try {
+        const response = await fetch(decorationForm.action, {
+          method: 'POST',
+          body: new FormData(decorationForm),
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          credentials: 'same-origin'
+        });
+        if (!response.ok) throw new Error('Falha ao salvar');
+        const data = await response.json();
+        document.documentElement.classList.toggle('christmas-enabled', data.christmas_decoration_enabled);
+        toggle.checked = data.christmas_decoration_enabled;
+        status.textContent = data.christmas_decoration_enabled ? 'Ativada' : 'Desativada';
+      } catch (error) {
+        status.textContent = 'Não foi possível salvar. Tente novamente.';
+      } finally {
+        saveButton.disabled = false;
+      }
+    });
+  }
+
   const toggleValues = document.getElementById('toggle-values');
   if (toggleValues) {
     const updateToggle = () => {

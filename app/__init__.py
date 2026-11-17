@@ -9,7 +9,7 @@ from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 from sqlalchemy import inspect, text
 from .extensions import db
-from .models import User, HorarioFuncionamento, Servico, Pet, HotelConfig
+from .models import User, HorarioFuncionamento, Servico, Pet, HotelConfig, SystemSetting
 
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
@@ -83,6 +83,11 @@ def create_app():
                 alertas.append({"pet": pet, "dias": dias})
         alertas.sort(key=lambda item: (item["dias"], item["pet"].nome))
         return {"pet_birthday_alerts": alertas[:5]}
+
+    @app.context_processor
+    def inject_christmas_decoration():
+        setting = db.session.get(SystemSetting, "christmas_decoration_enabled")
+        return {"christmas_decoration_enabled": setting is not None and setting.value == "true"}
 
     register_commands(app)
     return app

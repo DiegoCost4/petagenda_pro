@@ -1,8 +1,8 @@
 from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify
 from flask_login import login_required, current_user
 from app.extensions import db
-from app.models import HorarioFuncionamento, BloqueioAgenda, User
+from app.models import HorarioFuncionamento, BloqueioAgenda, User, SystemSetting
 
 bp = Blueprint("configuracoes", __name__, url_prefix="/configuracoes")
 
@@ -14,6 +14,27 @@ def index():
     bloqueios = BloqueioAgenda.query.order_by(BloqueioAgenda.data.desc(), BloqueioAgenda.hora_inicio).limit(30).all()
     usuarios = User.query.order_by(User.nome).all()
     return render_template("configuracoes/index.html", horarios=horarios, bloqueios=bloqueios, usuarios=usuarios)
+
+
+@bp.route("/aparencia/natal", methods=["POST"])
+@login_required
+def salvar_decoracao_natal():
+    if current_user.role != "admin":
+        abort(403)
+    value = request.form.get("christmas_decoration_enabled", "false")
+    if value not in ("true", "false"):
+        abort(400)
+    setting = db.session.get(SystemSetting, "christmas_decoration_enabled")
+    if setting is None:
+        setting = SystemSetting(key="christmas_decoration_enabled", value=value)
+        db.session.add(setting)
+    else:
+        setting.value = value
+    db.session.commit()
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify(christmas_decoration_enabled=value == "true")
+    flash("Aparência do sistema atualizada.", "success")
+    return redirect(url_for("configuracoes.index"))
 
 
 @bp.route("/horarios", methods=["POST"])

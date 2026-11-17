@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
 {% block title %}Início - PetAgenda Pro{% endblock %}
 {% block content %}
-<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 holiday-dashboard-hero">
+  <span class="holiday-hero-snow" aria-hidden="true"></span>
   <div>
     <div class="eyebrow">VISÃO GERAL</div><h1 class="page-title h2 mb-1">Seu dia no pet shop</h1>
     <p class="subtle mb-0">{{ hoje.strftime('%d/%m/%Y') }}</p>
@@ -10,15 +11,15 @@
 </div>
 
 <div class="row g-3 mb-4">
-  <div class="col-6 col-lg-3"><a class="text-decoration-none text-dark" href="{{ url_for('pacotes.renovacoes') }}"><div class="stat-card"><div class="stat-label">Renovações pendentes</div><div class="stat-value">{{ renovacoes_pendentes }}</div></div></a></div>
-  <div class="col-6 col-lg-3"><a class="text-decoration-none text-dark" href="{{ url_for('pacotes.index') }}"><div class="stat-card"><div class="stat-label">Pacotes vencendo em 7 dias</div><div class="stat-value">{{ pacotes_vencendo }}</div></div></a></div>
-  <div class="col-6 col-lg-3"><a class="text-decoration-none text-dark" href="{{ url_for('hotel.index') }}"><div class="stat-card"><div class="stat-label">Pets hospedados</div><div class="stat-value">{{ pets_hospedados }}</div></div></a></div>
-  <div class="col-6 col-lg-3"><a class="text-decoration-none text-dark" href="{{ url_for('hotel.index') }}"><div class="stat-card"><div class="stat-label">Entradas / saídas hoje</div><div class="stat-value">{{ entradas_hoje }} / {{ saidas_hoje }}</div></div></a></div>
+  <div class="col-6 col-lg-3"><a class="text-decoration-none text-dark" href="{{ url_for('pacotes.renovacoes') }}"><div class="stat-card holiday-stat holiday-stat--sprig"><div class="stat-label">Renovações pendentes</div><div class="stat-value">{{ renovacoes_pendentes }}</div></div></a></div>
+  <div class="col-6 col-lg-3"><a class="text-decoration-none text-dark" href="{{ url_for('pacotes.index') }}"><div class="stat-card holiday-stat holiday-stat--snow"><div class="stat-label">Pacotes vencendo em 7 dias</div><div class="stat-value">{{ pacotes_vencendo }}</div></div></a></div>
+  <div class="col-6 col-lg-3"><a class="text-decoration-none text-dark" href="{{ url_for('hotel.index') }}"><div class="stat-card holiday-stat holiday-stat--paw"><div class="stat-label">Pets hospedados</div><div class="stat-value">{{ pets_hospedados }}</div></div></a></div>
+  <div class="col-6 col-lg-3"><a class="text-decoration-none text-dark" href="{{ url_for('hotel.index') }}"><div class="stat-card holiday-stat holiday-stat--gift"><div class="stat-label">Entradas / saídas hoje</div><div class="stat-value">{{ entradas_hoje }} / {{ saidas_hoje }}</div></div></a></div>
 </div>
 
 <div class="row g-3 mb-4">
   <div class="col-6 col-lg-3">
-    <div class="stat-card">
+    <div class="stat-card holiday-stat holiday-stat--gold">
       <div class="d-flex justify-content-between align-items-start">
         <div>
           <div class="stat-label">Agendamentos hoje</div>
@@ -29,19 +30,19 @@
     </div>
   </div>
   <div class="col-6 col-lg-3">
-    <div class="stat-card">
+    <div class="stat-card holiday-stat holiday-stat--pine">
       <div class="stat-label">Previsto hoje</div>
       <div class="stat-value">{{ total_previsto|brl }}</div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
-    <div class="stat-card">
+    <div class="stat-card holiday-stat holiday-stat--ribbon">
       <div class="stat-label">Recebido hoje</div>
       <div class="stat-value">{{ total_recebido|brl }}</div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
-    <div class="stat-card">
+    <div class="stat-card holiday-stat holiday-stat--spark">
       <div class="stat-label">Clientes / Pets</div>
       <div class="stat-value">{{ total_tutores }} / {{ total_pets }}</div>
     </div>
@@ -50,9 +51,9 @@
 
 <div class="row g-3">
   <div class="col-lg-8">
-    <div class="card card-soft p-3 p-md-4">
+    <div class="card card-soft p-3 p-md-4 holiday-panel holiday-panel--agenda">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <h2 class="h5 fw-bold mb-0">Agenda de hoje</h2>
+        <h2 class="h5 fw-bold mb-0 holiday-panel-title holiday-panel-title--sprig">Agenda de hoje</h2>
         <a href="{{ url_for('agenda.index') }}" class="btn btn-outline-primary btn-sm">Ver agenda</a>
       </div>
       {% if agendamentos_hoje %}
@@ -70,7 +71,7 @@
           {% endfor %}
         </div>
       {% else %}
-        <div class="text-center py-5">
+        <div class="text-center py-5 holiday-empty holiday-empty--snow">
           <i class="bi bi-calendar-heart display-5 text-muted"></i>
           <p class="subtle mt-2">Nenhum agendamento para hoje.</p>
           <a class="btn btn-primary" href="{{ url_for('agenda.novo') }}">Criar primeiro agendamento</a>
@@ -79,8 +80,8 @@
     </div>
   </div>
   <div class="col-lg-4">
-    <div class="card card-soft p-3 p-md-4 mb-3">
-      <h2 class="h5 fw-bold mb-3">Próximo atendimento</h2>
+    <div class="card card-soft p-3 p-md-4 mb-3 holiday-panel holiday-panel--next">
+      <h2 class="h5 fw-bold mb-3 holiday-panel-title holiday-panel-title--paw">Próximo atendimento</h2>
       {% if proximo %}
         <div class="timeline-item">
           <div class="fw-bold">{{ proximo.hora_inicio }} - {{ proximo.pet.nome }}</div>
@@ -91,8 +92,8 @@
         <p class="subtle mb-0">Sem próximo atendimento ativo hoje.</p>
       {% endif %}
     </div>
-    <div class="card card-soft p-3 p-md-4">
-      <h2 class="h5 fw-bold mb-3">Ações rápidas</h2>
+    <div class="card card-soft p-3 p-md-4 holiday-panel holiday-panel--actions">
+      <h2 class="h5 fw-bold mb-3 holiday-panel-title holiday-panel-title--star">Ações rápidas</h2>
       <div class="d-grid gap-2">
         <a href="{{ url_for('tutores.novo') }}" class="btn btn-light text-start"><i class="bi bi-person-plus me-2"></i>Cadastrar tutor</a>
         <a href="{{ url_for('pets.novo') }}" class="btn btn-light text-start"><i class="bi bi-heart me-2"></i>Cadastrar pet</a>

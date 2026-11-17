@@ -481,3 +481,239 @@ body {
   top: 0;
   white-space: nowrap;
 }
+
+/* Natal no PetAgenda: ornamentos vetoriais, sem alterar a grade ou os controles. */
+.christmas-decorations, .holiday-hero-snow { display: none; }
+.christmas-enabled {
+  --christmas-pine: #255D4A;
+  --christmas-red: #B95B52;
+  --christmas-gold: #D9AA69;
+  --christmas-cream: #FFF8EA;
+}
+.christmas-enabled .app-header {
+  box-shadow: 0 5px 20px rgba(32, 72, 53, .06);
+}
+.christmas-enabled .app-header::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(37,93,74,.55) 28%, rgba(217,170,105,.7) 52%, rgba(185,91,82,.4) 76%, transparent);
+  pointer-events: none;
+}
+.christmas-enabled .christmas-decorations {
+  display: block;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.christmas-enabled .christmas-header-garland {
+  position: absolute;
+  top: -16px;
+  left: 51%;
+  width: min(290px, 30vw);
+  height: 38px;
+  transform: translateX(-50%);
+  opacity: .8;
+  animation: christmas-garland-glow 12s ease-in-out infinite;
+}
+.christmas-enabled .brand-icon { position: relative; }
+.christmas-enabled .brand-icon::after {
+  content: '';
+  position: absolute;
+  top: -15px;
+  left: -11px;
+  width: 38px;
+  height: 31px;
+  background: url('../decor/christmas-hat.svg') center / contain no-repeat;
+  pointer-events: none;
+}
+
+.christmas-enabled .holiday-dashboard-hero {
+  position: relative;
+  isolation: isolate;
+}
+.christmas-enabled .holiday-dashboard-hero::before {
+  content: '';
+  position: absolute;
+  inset: -12px -12px -8px;
+  z-index: -1;
+  border: 1px solid rgba(217,170,105,.3);
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at 58% 38%, rgba(255,245,211,.95), transparent 33%),
+    linear-gradient(105deg, #FFFDF7, #F8F2E5 65%, #F2F4E9);
+  box-shadow: 0 12px 28px rgba(78,78,50,.06);
+  pointer-events: none;
+}
+.christmas-enabled .holiday-dashboard-hero::after {
+  content: '';
+  position: absolute;
+  right: clamp(190px, 20vw, 310px);
+  bottom: -16px;
+  z-index: 0;
+  width: 180px;
+  height: 118px;
+  background: url('../decor/christmas-scene.svg') center bottom / contain no-repeat;
+  pointer-events: none;
+}
+.christmas-enabled .holiday-dashboard-hero > div,
+.christmas-enabled .holiday-dashboard-hero > a { position: relative; z-index: 1; }
+.christmas-enabled .holiday-hero-snow {
+  display: block;
+  position: absolute;
+  inset: -8px 0 0;
+  z-index: 0;
+  background:
+    url('../decor/christmas-snow.svg') 37% 15% / 17px 17px no-repeat,
+    url('../decor/christmas-snow.svg') 66% 70% / 12px 12px no-repeat,
+    url('../decor/christmas-snow.svg') 77% 18% / 14px 14px no-repeat;
+  opacity: .34;
+  pointer-events: none;
+  animation: christmas-snow-drift 16s ease-in-out infinite alternate;
+}
+
+.christmas-enabled .holiday-stat {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  box-shadow: inset 0 3px 0 rgba(217,170,105,.45), 0 10px 24px rgba(37,55,48,.05);
+}
+.christmas-enabled .holiday-stat::after {
+  content: '';
+  position: absolute;
+  right: 1px;
+  bottom: -5px;
+  width: 66px;
+  height: 66px;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: .48;
+  pointer-events: none;
+}
+.christmas-enabled .holiday-stat > * { position: relative; z-index: 1; }
+.christmas-enabled .holiday-stat--sprig::after { background-image: url('../decor/christmas-sprig.svg'); width: 74px; height: 74px; right: -8px; bottom: -10px; opacity: .7; }
+.christmas-enabled .holiday-stat--snow::after { background-image: url('../decor/christmas-snow.svg'); width: 48px; height: 48px; right: 10px; bottom: 4px; opacity: .32; }
+.christmas-enabled .holiday-stat--paw::after { background-image: url('../decor/christmas-paw.svg'); opacity: .4; }
+.christmas-enabled .holiday-stat--gift::after { background-image: url('../decor/christmas-gift.svg'); opacity: .55; }
+.christmas-enabled .holiday-stat--gold { box-shadow: inset 0 3px 0 rgba(217,170,105,.8), 0 10px 24px rgba(37,55,48,.05); }
+.christmas-enabled .holiday-stat--gold::after { background-image: url('../decor/christmas-snow.svg'); opacity: .22; width: 44px; height: 44px; right: 9px; bottom: 9px; }
+.christmas-enabled .holiday-stat--pine { background: linear-gradient(135deg, #fff 70%, #F0F5ED); box-shadow: inset 0 3px 0 rgba(37,93,74,.65), 0 10px 24px rgba(37,55,48,.05); }
+.christmas-enabled .holiday-stat--pine::after { background-image: url('../decor/christmas-sprig.svg'); width: 58px; height: 58px; opacity: .25; }
+.christmas-enabled .holiday-stat--ribbon { box-shadow: inset 0 3px 0 rgba(185,91,82,.62), 0 10px 24px rgba(37,55,48,.05); }
+.christmas-enabled .holiday-stat--ribbon::after { background-image: url('../decor/christmas-gift.svg'); width: 50px; height: 50px; opacity: .26; right: 8px; bottom: 4px; }
+.christmas-enabled .holiday-stat--spark::after { background-image: url('../decor/christmas-snow.svg'); width: 40px; height: 40px; opacity: .27; right: 12px; bottom: 8px; }
+
+.christmas-enabled .holiday-panel {
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 3px 0 rgba(217,170,105,.52), 0 12px 34px rgba(37,55,48,.055);
+}
+.christmas-enabled .holiday-panel--agenda { box-shadow: inset 0 3px 0 rgba(37,93,74,.63), 0 12px 34px rgba(37,55,48,.055); }
+.christmas-enabled .holiday-panel--next { background: radial-gradient(circle at 100% 100%, #FFF8EA, #fff 45%); }
+.christmas-enabled .holiday-panel--next::after {
+  content: '';
+  position: absolute;
+  right: 7px;
+  bottom: 6px;
+  width: 68px;
+  height: 62px;
+  background: url('../decor/christmas-paw.svg') center / contain no-repeat;
+  opacity: .16;
+  pointer-events: none;
+}
+.christmas-enabled .holiday-panel--module { box-shadow: inset 0 3px 0 rgba(37,93,74,.48), 0 12px 34px rgba(37,55,48,.055); }
+.christmas-enabled .holiday-panel-title::after,
+.christmas-enabled .holiday-module-heading h1::after {
+  content: '';
+  display: inline-block;
+  width: 29px;
+  height: 29px;
+  margin-left: 8px;
+  vertical-align: -5px;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+.christmas-enabled .holiday-panel-title--sprig::after,
+.christmas-enabled .holiday-module-heading--tutors h1::after,
+.christmas-enabled .holiday-module-heading--hotel h1::after { background-image: url('../decor/christmas-sprig.svg'); }
+.christmas-enabled .holiday-panel-title--paw::after,
+.christmas-enabled .holiday-module-heading--pets h1::after { background-image: url('../decor/christmas-paw.svg'); }
+.christmas-enabled .holiday-panel-title--gift::after,
+.christmas-enabled .holiday-module-heading--packages h1::after { background-image: url('../decor/christmas-gift.svg'); }
+.christmas-enabled .holiday-panel-title--star::after,
+.christmas-enabled .holiday-module-heading--renewals h1::after { background-image: url('../decor/christmas-snow.svg'); }
+.christmas-enabled .holiday-module-heading--agenda h1::after { background-image: url('../decor/christmas-snow.svg'); }
+.christmas-enabled .holiday-module-heading h1::after { width: 32px; height: 32px; vertical-align: -4px; }
+.christmas-enabled .holiday-module-heading { position: relative; }
+.christmas-enabled .holiday-module-heading::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -7px;
+  width: min(220px, 45vw);
+  height: 2px;
+  background: linear-gradient(90deg, var(--christmas-pine), var(--christmas-gold), transparent);
+  pointer-events: none;
+}
+.christmas-enabled .holiday-list-panel { box-shadow: inset 0 3px 0 rgba(217,170,105,.55), 0 12px 34px rgba(37,55,48,.055); }
+.christmas-enabled .holiday-pet-tile--accent { position: relative; overflow: hidden; }
+.christmas-enabled .holiday-pet-tile--accent::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  width: 36px;
+  height: 36px;
+  background: url('../decor/christmas-snow.svg') center / contain no-repeat;
+  opacity: .22;
+  pointer-events: none;
+}
+.christmas-enabled .holiday-renewal-card { box-shadow: inset 0 3px 0 rgba(185,91,82,.45), 0 12px 34px rgba(37,55,48,.055); }
+.christmas-enabled .holiday-hotel-card { position: relative; overflow: hidden; box-shadow: inset 0 3px 0 rgba(37,93,74,.5), 0 12px 34px rgba(37,55,48,.055); }
+.christmas-enabled .holiday-hotel-card::after { content: ''; position: absolute; right: 7px; bottom: 4px; width: 56px; height: 52px; background: url('../decor/christmas-paw.svg') center / contain no-repeat; opacity: .14; pointer-events: none; }
+.christmas-enabled .holiday-hotel-card > * { position: relative; z-index: 1; }
+.christmas-enabled .holiday-empty { position: relative; }
+.christmas-enabled .holiday-empty::after {
+  content: '';
+  position: absolute;
+  right: 7%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  transform: translateY(-50%);
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: .3;
+  pointer-events: none;
+}
+.christmas-enabled .holiday-empty--snow::after { background-image: url('../decor/christmas-snow.svg'); }
+.christmas-enabled .holiday-empty--sprig::after { background-image: url('../decor/christmas-sprig.svg'); }
+.christmas-enabled .holiday-empty--paw::after { background-image: url('../decor/christmas-paw.svg'); }
+.christmas-enabled .holiday-empty--gift::after { background-image: url('../decor/christmas-gift.svg'); }
+
+@keyframes christmas-garland-glow { 50% { opacity: .55; } }
+@keyframes christmas-snow-drift { to { transform: translateY(8px); opacity: .22; } }
+@media (max-width: 1050px) {
+  .christmas-enabled .holiday-dashboard-hero::after { right: 175px; width: 110px; height: 88px; opacity: .82; }
+  .christmas-enabled .christmas-header-garland { width: 190px; }
+}
+@media (max-width: 575px) {
+  .christmas-enabled .holiday-dashboard-hero::after { display: none; }
+  .christmas-enabled .holiday-dashboard-hero::before { inset: -8px -6px -4px; }
+  .christmas-enabled .holiday-stat::after { width: 42px; height: 42px; opacity: .24; }
+  .christmas-enabled .holiday-empty::after { right: 3%; width: 32px; height: 32px; opacity: .18; }
+  .christmas-enabled .christmas-header-garland { left: 54%; width: 145px; opacity: .55; }
+  .christmas-enabled .holiday-panel-title::after { width: 20px; height: 20px; margin-left: 5px; vertical-align: -3px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .christmas-enabled .christmas-header-garland,
+  .christmas-enabled .holiday-hero-snow { animation: none; }
+}
